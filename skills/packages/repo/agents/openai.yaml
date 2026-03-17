@@ -1,4 +1,0 @@
-interface:
-  display_name: "put.io Package Repo"
-  short_description: "Standardize package repo delivery"
-  default_prompt: "Use $putio-package-repo to structure this package repository with a verify pipeline and automatic release flow."
