@@ -1,34 +1,48 @@
-# put.io Skills
+<div align="center">
+  <p>
+    <img src="https://static.put.io/images/putio-boncuk.png" width="72">
+  </p>
 
-Shared agent skill library for put.io developers.
+  <h1>putdotio/skills</h1>
 
-This repo is a home for reusable agent skills that encode team workflows, repo conventions, and domain knowledge. The goal is to keep skills small, practical, and easy to iterate on as we learn what is actually useful in day-to-day work.
+  <p>
+    Shared agent skills for put.io development workflows.
+  </p>
+</div>
 
-## Structure
+## Installation
+
+Install the collection with the `skills` CLI:
+
+```bash
+npx skills add putdotio/skills
+```
+
+Install a specific skill from this repo:
+
+```bash
+npx skills add https://github.com/putdotio/skills --skill putio-frontend-docs
+```
+
+```bash
+npx skills add https://github.com/putdotio/skills --skill putio-package-repo
+```
+
+## Current Skills
+
+| Skill | Use it for |
+| --- | --- |
+| `putio-frontend-docs` | Structure frontend repo docs, especially top-level README files |
+| `putio-package-repo` | Standardize package repos around `verify` and automatic release on `main` |
+
+## Repo Shape
 
 ```text
 skills/
   frontend/
     docs/
-      SKILL.md
-      agents/openai.yaml
+  packages/
+    repo/
 ```
 
-Use top-level folders in `skills/` as simple namespaces such as `frontend`, `backend`, or `ops`.
-
-## Conventions
-
-- Keep each skill in its own folder named with lowercase hyphen-case.
-- Keep `SKILL.md` focused on workflow and decision-making.
-- Add `references/`, `scripts/`, or `assets/` only when the skill genuinely needs them.
-- Keep durable repo guidance in the repo instead of chat threads.
-
-## Current Skills
-
-- `frontend/docs` (`putio-frontend-docs`): structure frontend repository docs, starting with top-level README shape and organization.
-
-## Next Steps
-
-- Add more shared skills under `skills/`.
-- Iterate on skill content after real usage.
-- Expand the frontend namespace with additional repo, UI, and release workflows over time.
+`packages/repo` uses the new `putio-sdk-typescript` layout as its current reference.
