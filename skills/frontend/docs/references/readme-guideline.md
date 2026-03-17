@@ -1,34 +1,31 @@
-# Frontend README Guideline
+# Frontend Repo Docs Guideline
 
-Use this when shaping a put.io frontend README. Copy the structure, not the wording.
+Use this when shaping top-level docs for a put.io frontend repo. Copy the structure, not the wording.
 
-## Observed put.io Pattern
+## Core Split
 
-The current `putio-sdk-typescript` README is a good reference point:
+- `README.md` is user-facing.
+- `CONTRIBUTING.md` is developer-facing.
+- `LICENSE` states the license.
+- `SECURITY.md` explains private-first vulnerability disclosure and points reporters to `ui@put.io`.
 
-- compact brand-forward hero
-- optional boncuk or brand image
-- sparse trust badges
-- installation near the top
-- one short example per supported entry path
-- comparison table only when readers need help choosing
-- deeper technical detail pushed downward or linked out to `docs/*`
+This separation keeps “how do I use this?” out of contributor docs and keeps “how do I set up my environment?” out of the README.
 
-## Default Shape
+## README.md
 
 Use this order unless the repo gives a strong reason not to:
 
 1. Hero
-2. Installation or local setup
+2. Install
 3. Quick usage or first successful flow
-4. Optional comparison or integration table
-5. Project structure or architecture overview
-6. Operational notes developers actually need
-7. Links to deeper docs
+4. Optional examples, variants, or integration notes
+5. Links to deeper docs
+6. Contributing, security, and license links
 
-If the repo is mostly a package, prefer `Installation` then `Usage`.
-
-If the repo is mostly an app, prefer `Local Setup` then `Run` or `Development`.
+- Answer these questions on the first screen: what is this project, how do I install it, and how do I use it.
+- For package repos, show install commands and one short usage example.
+- For app repos, show the user-facing way to access or use the app; contributor setup belongs in `CONTRIBUTING.md`.
+- Link to deeper docs before the README turns into a handbook.
 
 ## Hero And Badges
 
@@ -37,21 +34,40 @@ If the repo is mostly an app, prefer `Local Setup` then `Run` or `Development`.
 - Good badges: CI status, version, downloads when relevant, license.
 - Skip decorative badges that do not help trust, adoption, or navigation.
 
-## Usage And Links
+## CONTRIBUTING.md
 
-- Put the fastest successful path near the top.
-- For package repos, show install commands in a compact block or matrix.
-- For app repos, show install, required env setup, and the command that starts the app.
-- If multiple entry paths exist, show one short example per path and add a compact “how to choose” note or table.
-- Put “how do I run this” above “how is this built”.
-- Keep snippets copy-pastable.
-- Move long testing, architecture, and runbook detail to `docs/*`.
+Use this order unless the repo gives a strong reason not to:
+
+1. Setup
+2. Run locally
+3. Validation
+4. Development notes
+5. Pull request expectations
+6. Release notes only if contributors genuinely need them
+
+- Put environment bootstrap first.
+- Include only contributor-facing commands here: install toolchain, install dependencies, run locally, run checks.
+- Keep commands copy-pastable and verified against the repo.
+- Document repo-specific development constraints only when they materially help contributors.
+
+## SECURITY.md
+
+- Keep it short and private-first.
+- Tell reporters not to file public issues for vulnerabilities.
+- Use `ui@put.io` as the contact email.
+- Link to the security policy from `README.md` when helpful.
+
+## LICENSE
+
+- Ensure the repo has one.
+- Reference it from `README.md`.
 
 ## Checklist
 
-- The first screen answers what this repo is and how to start.
-- Installation or local setup is easy to scan.
-- Usage appears before deep technical background.
-- Variants are compared only when multiple entry paths truly exist.
-- The README links out before it turns into a handbook.
-- Every command, doc path, and badge target is verified against the repo.
+- `README.md` answers what the project is, how to install it, and how to use it.
+- `CONTRIBUTING.md` explains how to set up an environment to contribute and how to validate changes.
+- `SECURITY.md` uses private-first disclosure and points to `ui@put.io`.
+- `LICENSE` exists and is linked where appropriate.
+- User-facing docs do not drift into contributor setup.
+- Contributor docs do not re-explain end-user usage unless it helps local development.
+- Every command, doc path, badge target, and contact address is verified against the repo.

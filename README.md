@@ -28,5 +28,5 @@ npx skills add https://github.com/putdotio/skills --skill putio-frontend-docs
 
 | Skill | Use it for |
 | --- | --- |
-| `putio-frontend-docs` | Structure frontend repo docs, especially top-level README files |
+| `putio-frontend-docs` | Structure frontend repo docs with a clear split between user-facing README.md and contributor-facing CONTRIBUTING.md |
 | `putio-frontend-packages` | Standardize future package repos around `verify` and automatic release on `main` |

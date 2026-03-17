@@ -7,7 +7,8 @@ Use the new `putio-sdk-typescript` layout as the default TypeScript package refe
 - Use Vite+ (`vp`) for install, check, build, and test flows.
 - Expose one repo-local `verify` script and let CI call it directly.
 - Prefer the same package-repo shape across TypeScript libraries so setup and maintenance stay boring.
-- Use semantic-release for npm publishing and release notes.
+- Prefer GitHub Actions for release orchestration.
+- If the repo uses semantic-release for npm publishing and release notes, run it from the release workflow instead of installing release-only tooling into the package by default.
 
 ## Expected Shape
 
@@ -15,7 +16,7 @@ Use the new `putio-sdk-typescript` layout as the default TypeScript package refe
 - CI setup with `voidzero-dev/setup-vp`
 - `vp install` before verification or release
 - `verify` on pull requests and `main` pushes
-- semantic-release on `main` after verify passes
+- a GitHub Actions release job on `main` after `verify` passes
 
 ## Build Tooling
 
