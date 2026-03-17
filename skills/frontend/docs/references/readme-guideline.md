@@ -44,6 +44,7 @@ Use this order unless the repo gives a strong reason not to:
 - Use this section to link to deeper docs without dumping their contents into the README.
 - Keep the section even when the repo only has a small set of links.
 - Common links include About, Guides, Architecture, Deployment, and Security when those docs exist.
+- Avoid repeating the same doc-link lists in multiple top-level files. Keep one canonical navigation area and let other docs link to it sparingly.
 - Keep it skimmable: a short list is usually enough.
 
 ## CONTRIBUTING.md
@@ -86,4 +87,5 @@ Use this order unless the repo gives a strong reason not to:
 - `LICENSE` exists and is linked where appropriate.
 - User-facing docs do not drift into contributor setup.
 - Contributor docs do not re-explain end-user usage unless it helps local development.
+- Repeated doc references live in one canonical place instead of being copied across multiple files.
 - Every command, doc path, badge target, and contact address is verified against the repo.

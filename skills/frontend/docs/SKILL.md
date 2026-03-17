@@ -26,8 +26,8 @@ Shape frontend repo docs around a clear split between user-facing docs and contr
 - Do not duplicate long content that already lives in repo docs.
 - Keep `README.md` focused on what the project is, how to install it, and how to use it.
 - Keep `CONTRIBUTING.md` focused on setting up an environment to contribute, validating changes, and contributor workflow.
-- Prefer one responsibility per top-level doc: `README.md` for users, `CONTRIBUTING.md` for contributors, `LICENSE` for licensing, `SECURITY.md` for disclosure policy.
-- Frontend repos should have `README.md`, `CONTRIBUTING.md`, `LICENSE`, and `SECURITY.md` as the default top-level doc set.
+- Use `README.md`, `CONTRIBUTING.md`, `LICENSE`, and `SECURITY.md` as the default top-level doc set, with one responsibility per file.
+- Keep recurring doc links in one canonical navigation area instead of duplicating the same reference lists across multiple files.
 - Keep `SECURITY.md` private-first: ask reporters not to open public issues for vulnerabilities and direct them to `ui@put.io`.
 - Do not hardcode volatile metrics such as test counts or coverage numbers.
 - Do not add generic filler sections that say nothing specific about the repo.
