@@ -1,0 +1,4 @@
+interface:
+  display_name: "put.io Frontend Docs"
+  short_description: "Structure frontend repo docs"
+  default_prompt: "Use $putio-frontend-docs to structure the docs for this frontend repository."
