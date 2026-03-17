@@ -30,3 +30,9 @@ npx skills add https://github.com/putdotio/skills --skill putio-frontend-docs
 | --- | --- |
 | `putio-frontend-docs` | Structure frontend repo docs with a clear split between user-facing README.md and contributor-facing CONTRIBUTING.md |
 | `putio-frontend-packages` | Standardize future package repos around `verify` and automatic release on `main` |
+
+## Validation
+
+```bash
+./skills/frontend/docs/scripts/check-doc-links.sh
+```

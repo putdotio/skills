@@ -19,6 +19,8 @@ Shape frontend repo docs around a clear split between user-facing docs and contr
 8. Ensure the repo has `CONTRIBUTING.md`, `LICENSE`, and `SECURITY.md`; keep `SECURITY.md` private-first and use `ui@put.io` for security contact.
 9. Push deep implementation detail into linked docs when it starts to bloat the top-level docs.
 10. Verify that every claimed command, path, email address, and doc link exists.
+11. In checked-in docs, use repo-relative Markdown links for local files. Reserve absolute filesystem paths for chat/UI file references, not versioned docs.
+12. When changing Markdown links, run `scripts/check-doc-links.sh`.
 
 ## Guardrails
 
@@ -32,3 +34,4 @@ Shape frontend repo docs around a clear split between user-facing docs and contr
 - Do not hardcode volatile metrics such as test counts or coverage numbers.
 - Do not add generic filler sections that say nothing specific about the repo.
 - Do not cite or link unrelated external repos in generated docs unless the user explicitly asks for that.
+- Do not leak chat-only absolute filesystem links such as `/Users/...`, `file://...`, or `vscode://...` into checked-in docs.
