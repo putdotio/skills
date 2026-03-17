@@ -1,9 +1,9 @@
 ---
-name: putio-package-repo
+name: putio-frontend-packages
 description: Structure package repositories around a shared verify and release model. Use when creating or standardizing library/package repos across TypeScript, Swift, Kotlin, or similar ecosystems, setting up CI guardrails, defining a repo-local verify command, or enabling automatic releases on main.
 ---
 
-# Putio Package Repo
+# Frontend Packages
 
 Shape package repos around one boring delivery rule: every merge to `main` should already be releasable.
 

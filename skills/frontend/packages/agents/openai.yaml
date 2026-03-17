@@ -1,0 +1,4 @@
+interface:
+  display_name: "put.io Frontend Packages"
+  short_description: "Standardize package repo delivery"
+  default_prompt: "Use $putio-frontend-packages to structure this package repository with a verify pipeline and automatic release flow."

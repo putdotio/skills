@@ -18,14 +18,10 @@ Install the collection with the `skills` CLI:
 npx skills add putdotio/skills
 ```
 
-Install a specific skill from this repo:
+Or install one skill directly:
 
 ```bash
 npx skills add https://github.com/putdotio/skills --skill putio-frontend-docs
-```
-
-```bash
-npx skills add https://github.com/putdotio/skills --skill putio-package-repo
 ```
 
 ## Current Skills
@@ -33,16 +29,4 @@ npx skills add https://github.com/putdotio/skills --skill putio-package-repo
 | Skill | Use it for |
 | --- | --- |
 | `putio-frontend-docs` | Structure frontend repo docs, especially top-level README files |
-| `putio-package-repo` | Standardize package repos around `verify` and automatic release on `main` |
-
-## Repo Shape
-
-```text
-skills/
-  frontend/
-    docs/
-  packages/
-    repo/
-```
-
-`packages/repo` uses the new `putio-sdk-typescript` layout as its current reference.
+| `putio-frontend-packages` | Standardize future package repos around `verify` and automatic release on `main` |
