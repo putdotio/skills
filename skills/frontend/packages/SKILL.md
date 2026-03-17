@@ -19,5 +19,6 @@ Shape package repos around one boring delivery rule: every merge to `main` shoul
 
 - Keep `VERIFY` as the source of truth for all guardrails.
 - Run `RELEASE` only on `main`, and only after `VERIFY` passes.
+- Prefer GitHub Actions for release orchestration; avoid adding release-only package dependencies or scripts unless an existing repo or team standard requires them.
 - Do not duplicate complex shell logic in workflow YAML when the repo can expose a local command.
 - Do not invent ecosystem-specific release tooling without a real repo or team standard behind it.
