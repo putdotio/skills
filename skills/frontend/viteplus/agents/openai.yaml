@@ -1,4 +1,0 @@
-interface:
-  display_name: "Frontend VitePlus"
-  short_description: "Align repos with stock VitePlus"
-  default_prompt: "Use $frontend-viteplus to migrate or align this frontend repository with the stock VitePlus workflow across scripts, CI, tests, and packaging while preserving necessary repo-specific release logic."
