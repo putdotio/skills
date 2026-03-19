@@ -20,7 +20,7 @@ Shape frontend repo docs around a clear split between user-facing docs and contr
 9. Push deep implementation detail into linked docs when it starts to bloat the top-level docs.
 10. Verify that every claimed command, path, email address, and doc link exists.
 11. In checked-in docs, use repo-relative Markdown links for local files. Reserve absolute filesystem paths for chat/UI file references, not versioned docs.
-12. When changing Markdown links, run `scripts/check-doc-links.sh`.
+12. When changing Markdown links, verify that each local link target exists and that every claimed doc path resolves inside the repo.
 
 ## Guardrails
 
@@ -35,5 +35,6 @@ Shape frontend repo docs around a clear split between user-facing docs and contr
 - Do not add generic filler sections that say nothing specific about the repo.
 - Do not cite or link unrelated external repos in generated docs unless the user explicitly asks for that.
 - Do not leak chat-only absolute filesystem links such as `/Users/...`, `file://...`, or `vscode://...` into checked-in docs.
+- Do not assume the repo provides a link-checking script or any repo-specific docs helper unless it actually exists.
 - Never include user PII (names, emails, usernames, IPs, etc.) in docs, references, or examples. Mask or normalize any PII to generic placeholders (e.g., `user@example.com`, `your-username`).
 - Never mention third-party applications by name in docs or references. Refer to them collectively as "ecosystem apps".
