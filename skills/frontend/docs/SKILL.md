@@ -35,3 +35,5 @@ Shape frontend repo docs around a clear split between user-facing docs and contr
 - Do not add generic filler sections that say nothing specific about the repo.
 - Do not cite or link unrelated external repos in generated docs unless the user explicitly asks for that.
 - Do not leak chat-only absolute filesystem links such as `/Users/...`, `file://...`, or `vscode://...` into checked-in docs.
+- Never include user PII (names, emails, usernames, IPs, etc.) in docs, references, or examples. Mask or normalize any PII to generic placeholders (e.g., `user@example.com`, `your-username`).
+- Never mention third-party applications by name in docs or references. Refer to them collectively as "ecosystem apps".
