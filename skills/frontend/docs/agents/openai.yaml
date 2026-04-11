@@ -1,4 +1,4 @@
 interface:
   display_name: "put.io Frontend Docs"
   short_description: "Structure frontend repo docs"
-  default_prompt: "Use $putio-frontend-docs to structure this frontend repository's top-level docs, with README.md for users and CONTRIBUTING.md for contributors."
+  default_prompt: "Use $putio-frontend-docs to structure this frontend repository's top-level docs, fix stale commands or links, keep README.md user-facing, and keep CONTRIBUTING.md contributor-facing."

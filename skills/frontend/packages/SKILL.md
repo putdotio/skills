@@ -1,6 +1,6 @@
 ---
 name: putio-frontend-packages
-description: Structure package repositories around a shared verify and release model. Use when creating or standardizing library/package repos across TypeScript, Swift, Kotlin, or similar ecosystems, setting up CI guardrails, defining a repo-local verify command, or enabling automatic releases on main.
+description: Structure package repositories around a shared verify and release model. Use when creating or standardizing library/package repos across TypeScript, Swift, Kotlin, or similar ecosystems, setting up CI guardrails, defining a repo-local verify command, or enabling automatic releases on main after verify passes.
 ---
 
 # Frontend Packages
@@ -14,6 +14,28 @@ Shape package repos around one boring delivery rule: every merge to `main` shoul
 3. If the repo is TypeScript, read [references/typescript.md](references/typescript.md).
 4. For other ecosystems, keep the same verify/release shape and choose the smallest repo-native tooling that fits.
 5. Prefer one repo-local `verify` entrypoint that CI calls directly.
+6. Run the repo-local `verify` command locally and require a clean exit before changing release automation.
+7. If `verify` fails locally or in CI, fix the repo-local command before changing release automation and rerun it until it passes.
+8. Verify the release path only after the repo-local `verify` command is stable and reproducible.
+
+Concrete example:
+
+```json
+{
+  "scripts": {
+    "verify": "pnpm lint && pnpm test && pnpm build"
+  }
+}
+```
+
+```yaml
+- name: Verify
+  run: pnpm verify
+
+- name: Release
+  if: github.ref == 'refs/heads/main'
+  run: pnpm release
+```
 
 ## Guardrails
 
