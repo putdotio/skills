@@ -1,4 +1,0 @@
-interface:
-  display_name: "put.io Frontend Vite+"
-  short_description: "Align repos with stock Vite+"
-  default_prompt: "Use $putio-frontend-viteplus to migrate or align this frontend repository with the stock Vite+ workflow across scripts, CI, tests, and packaging while preserving necessary repo-specific release logic."
