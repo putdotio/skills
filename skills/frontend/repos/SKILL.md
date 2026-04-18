@@ -9,7 +9,7 @@ Shape frontend repos around one boring delivery rule: every merge to `main` shou
 
 ## Workflow
 
-1. Inspect the repo's kind, delivery target, scripts, workflows, versioning, and branch model.
+1. Inspect the repo's kind, delivery target, scripts, workflows, versioning, and branch model by checking files like `package.json`, `Makefile`, `.github/workflows/*`, release config, and the current default branch.
 2. Read [references/delivery-model.md](references/delivery-model.md).
 3. If the repo is TypeScript, read [references/typescript.md](references/typescript.md).
 4. If the repo is an application, read [references/applications.md](references/applications.md).
