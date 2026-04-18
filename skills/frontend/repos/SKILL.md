@@ -17,7 +17,8 @@ Shape frontend repos around one boring delivery rule: every merge to `main` shou
 6. Prefer one repo-local `verify` entrypoint that CI calls directly.
 7. Run the repo-local `verify` command locally and require a clean exit before changing delivery automation.
 8. If `verify` fails locally or in CI, fix the repo-local command before changing delivery automation and rerun it until it passes.
-9. Verify the publish or deploy path only after the repo-local `verify` command is stable and reproducible.
+9. If the repo uses semantic-release, explicitly configure `@semantic-release/commit-analyzer` and `@semantic-release/release-notes-generator` with the `conventionalcommits` preset instead of relying on the default preset.
+10. Verify the publish or deploy path only after the repo-local `verify` command is stable and reproducible.
 
 Concrete example:
 
@@ -54,6 +55,7 @@ App-shaped example:
 - Keep `VERIFY` as the source of truth for all guardrails.
 - Run delivery only on `main`, and only after `VERIFY` passes.
 - Prefer GitHub Actions for orchestration; avoid adding release-only or deploy-only dependencies unless an existing repo or team standard requires them.
+- If a repo uses semantic-release, keep the preset explicit in repo config and workflow plugin setup so `feat!` and other Conventional Commits semantics stay stable across ecosystems.
 - Do not duplicate complex shell logic in workflow YAML when the repo can expose a local command.
 - Do not invent ecosystem-specific release tooling without a real repo or team standard behind it.
 - Package repos should publish continuously when releasable commits land on `main`.

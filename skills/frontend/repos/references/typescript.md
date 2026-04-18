@@ -9,6 +9,7 @@ Use the new `putio-sdk-typescript` layout as the default TypeScript package refe
 - Prefer the same repo shape across TypeScript libraries and apps so setup and maintenance stay boring.
 - Prefer GitHub Actions for release orchestration.
 - If the repo uses semantic-release for npm publishing and release notes, run it from the release workflow instead of installing release-only tooling into the package by default.
+- When using semantic-release, configure both the commit analyzer and release notes generator with the `conventionalcommits` preset and include `conventional-changelog-conventionalcommits` in the workflow plugin list.
 
 ## Expected Shape
 
