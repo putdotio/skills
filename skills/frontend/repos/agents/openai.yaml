@@ -1,0 +1,4 @@
+interface:
+  display_name: "put.io Frontend Repos"
+  short_description: "Standardize repo delivery"
+  default_prompt: "Use $putio-frontend-repos to structure this frontend repository around one repo-local verify command, CI guardrails, and a continuous publish or deploy flow that only runs after verify passes."
