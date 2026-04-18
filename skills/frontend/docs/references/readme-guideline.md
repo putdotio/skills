@@ -38,6 +38,8 @@ Use this order unless the repo gives a strong reason not to:
 - Keep the hero compact: name, one-sentence purpose, optional positioning sentence.
 - Good badges: CI status, version, downloads when relevant, license.
 - Skip decorative badges that do not help trust, adoption, or navigation.
+- For put.io repos that use shields badges, follow the `putio-sdk-typescript` pattern: `style=flat`, `colorA=000000`, `colorB=000000`, and `style="text-decoration:none;"` on each badge link.
+- Keep badge styling consistent within the hero block. Do not mix black shields with default-colored or glossy variants.
 
 ## Docs Section
 

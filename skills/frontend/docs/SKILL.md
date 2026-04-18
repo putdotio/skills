@@ -19,9 +19,10 @@ Shape frontend repo docs around a clear split between user-facing docs and contr
 8. Ensure the repo has `CONTRIBUTING.md`, `LICENSE`, and `SECURITY.md`; keep `SECURITY.md` private-first and use `ui@put.io` for security contact.
 9. Push deep implementation detail into linked docs when it starts to bloat the top-level docs.
 10. When a repo uses `AGENTS.md`, keep `CLAUDE.md` beside it as a symlink to `AGENTS.md` instead of maintaining a second authored guidance file.
-11. In checked-in docs, use repo-relative Markdown links for local files. Reserve absolute filesystem paths for chat/UI file references, not versioned docs.
-12. Verify that every claimed command, path, email address, and doc link exists.
-13. If any command, path, or link is broken, fix the doc and re-verify before stopping.
+11. When a README uses shields badges, match the `putio-sdk-typescript` black flat style: `style=flat`, `colorA=000000`, `colorB=000000`, and `style="text-decoration:none;"` on the surrounding link.
+12. In checked-in docs, use repo-relative Markdown links for local files. Reserve absolute filesystem paths for chat/UI file references, not versioned docs.
+13. Verify that every claimed command, path, email address, doc link, and badge target exists.
+14. If any command, path, link, or badge target is broken, fix the doc and re-verify before stopping.
 
 Concrete shape:
 
@@ -56,6 +57,7 @@ test ! -e AGENTS.md || { test -L CLAUDE.md && test "$(readlink CLAUDE.md)" = "AG
 - Use `README.md`, `CONTRIBUTING.md`, `LICENSE`, and `SECURITY.md` as the default top-level doc set, with one responsibility per file.
 - Keep recurring doc links in one canonical navigation area instead of duplicating the same reference lists across multiple files.
 - Do not maintain separate authored copies of `AGENTS.md` and `CLAUDE.md`. If both are present, `CLAUDE.md` should be a symlink to `AGENTS.md`.
+- When a repo uses shields badges, keep them on the flat black put.io style instead of mixing colors or badge variants.
 - Do not hardcode volatile metrics such as test counts or coverage numbers.
 - Do not add generic filler sections that say nothing specific about the repo.
 - Do not cite or link unrelated external repos in generated docs unless the user explicitly asks for that.
