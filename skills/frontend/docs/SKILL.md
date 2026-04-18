@@ -16,7 +16,7 @@ Shape frontend repo docs around a clear split between user-facing docs and contr
 5. Start from [references/security-template.md](references/security-template.md) when creating or reshaping `SECURITY.md`.
 6. Put end-user install and usage in `README.md`.
 7. Put contributor environment setup, validation, and development workflow in `CONTRIBUTING.md`.
-8. Ensure the repo has `CONTRIBUTING.md`, `LICENSE`, and `SECURITY.md`; keep `SECURITY.md` private-first and use `ui@put.io` for security contact.
+8. Ensure the repo has `CONTRIBUTING.md`, `LICENSE`, and `SECURITY.md`; keep `SECURITY.md` private-first and use `devs@put.io` for security contact.
 9. Push deep implementation detail into linked docs when it starts to bloat the top-level docs.
 10. When a repo uses `AGENTS.md`, keep `CLAUDE.md` beside it as a symlink to `AGENTS.md` instead of maintaining a second authored guidance file.
 11. When a README uses shields badges, match the `putio-sdk-typescript` black flat style: `style=flat`, `colorA=000000`, `colorB=000000`, and `style="text-decoration:none;"` on the surrounding link.

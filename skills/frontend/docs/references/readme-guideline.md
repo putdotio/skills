@@ -7,7 +7,7 @@ Use this when shaping top-level docs for a put.io frontend repo. Copy the struct
 - `README.md` is user-facing.
 - `CONTRIBUTING.md` is developer-facing.
 - `LICENSE` states the license.
-- `SECURITY.md` explains private-first vulnerability disclosure and points reporters to `ui@put.io`.
+- `SECURITY.md` explains private-first vulnerability disclosure and points reporters to `devs@put.io`.
 
 This separation keeps “how do I use this?” out of contributor docs and keeps “how do I set up my environment?” out of the README.
 
@@ -70,7 +70,7 @@ Use this order unless the repo gives a strong reason not to:
 
 - Keep it short and private-first.
 - Tell reporters not to file public issues for vulnerabilities.
-- Use `ui@put.io` as the contact email.
+- Use `devs@put.io` as the contact email.
 - Start from `references/security-template.md` when the repo needs a new security policy.
 - Link to the security policy from `README.md` when helpful.
 
@@ -85,7 +85,7 @@ Use this order unless the repo gives a strong reason not to:
 - `README.md` includes a compact `Docs` section.
 - `README.md` includes short `Contributing` and `License` sections that point to the canonical files.
 - `CONTRIBUTING.md` explains how to set up an environment to contribute and how to validate changes.
-- `SECURITY.md` uses private-first disclosure and points to `ui@put.io`.
+- `SECURITY.md` uses private-first disclosure and points to `devs@put.io`.
 - `LICENSE` exists and is linked where appropriate.
 - User-facing docs do not drift into contributor setup.
 - Contributor docs do not re-explain end-user usage unless it helps local development.

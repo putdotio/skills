@@ -9,7 +9,7 @@ If you believe you have found a security or privacy issue in this project, pleas
 
 ## Contact
 
-- email: ui@put.io
+- email: devs@put.io
 
 Private reports are preferred for security and privacy issues.
 
