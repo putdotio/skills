@@ -18,9 +18,10 @@ Shape frontend repo docs around a clear split between user-facing docs and contr
 7. Put contributor environment setup, validation, and development workflow in `CONTRIBUTING.md`.
 8. Ensure the repo has `CONTRIBUTING.md`, `LICENSE`, and `SECURITY.md`; keep `SECURITY.md` private-first and use `ui@put.io` for security contact.
 9. Push deep implementation detail into linked docs when it starts to bloat the top-level docs.
-10. In checked-in docs, use repo-relative Markdown links for local files. Reserve absolute filesystem paths for chat/UI file references, not versioned docs.
-11. Verify that every claimed command, path, email address, and doc link exists.
-12. If any command, path, or link is broken, fix the doc and re-verify before stopping.
+10. When a repo uses `AGENTS.md`, keep `CLAUDE.md` beside it as a symlink to `AGENTS.md` instead of maintaining a second authored guidance file.
+11. In checked-in docs, use repo-relative Markdown links for local files. Reserve absolute filesystem paths for chat/UI file references, not versioned docs.
+12. Verify that every claimed command, path, email address, and doc link exists.
+13. If any command, path, or link is broken, fix the doc and re-verify before stopping.
 
 Concrete shape:
 
@@ -41,8 +42,9 @@ Concrete shape:
 Concrete checks:
 
 ```bash
-rg -n "README|CONTRIBUTING|SECURITY|docs/" README.md CONTRIBUTING.md SECURITY.md docs/
+rg -n "README|CONTRIBUTING|SECURITY|AGENTS|CLAUDE|docs/" README.md CONTRIBUTING.md SECURITY.md AGENTS.md CLAUDE.md docs/
 test -e README.md && test -e CONTRIBUTING.md
+test ! -e AGENTS.md || { test -L CLAUDE.md && test "$(readlink CLAUDE.md)" = "AGENTS.md"; }
 ```
 
 ## Guardrails
@@ -53,6 +55,7 @@ test -e README.md && test -e CONTRIBUTING.md
 - Keep `CONTRIBUTING.md` focused on setting up an environment to contribute, validating changes, and contributor workflow.
 - Use `README.md`, `CONTRIBUTING.md`, `LICENSE`, and `SECURITY.md` as the default top-level doc set, with one responsibility per file.
 - Keep recurring doc links in one canonical navigation area instead of duplicating the same reference lists across multiple files.
+- Do not maintain separate authored copies of `AGENTS.md` and `CLAUDE.md`. If both are present, `CLAUDE.md` should be a symlink to `AGENTS.md`.
 - Do not hardcode volatile metrics such as test counts or coverage numbers.
 - Do not add generic filler sections that say nothing specific about the repo.
 - Do not cite or link unrelated external repos in generated docs unless the user explicitly asks for that.
