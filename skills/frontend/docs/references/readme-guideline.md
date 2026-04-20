@@ -1,6 +1,7 @@
 # Frontend Repo Docs Guideline
 
 Use this when shaping top-level docs for a put.io frontend repo. Copy the structure, not the wording.
+Documentation is part of the interface; optimize for scanability, rhythm, and visual clarity, not just correctness.
 
 ## Core Split
 
@@ -27,6 +28,7 @@ Use this order unless the repo gives a strong reason not to:
 - For package repos, show install commands and one short usage example.
 - For app repos, show the user-facing way to access or use the app; contributor setup belongs in `CONTRIBUTING.md`.
 - Add a compact `Docs` section. When deeper docs exist, use it to link to them; otherwise use it for lightweight project navigation.
+- Use human-facing labels in the README, not raw filenames or paths. Prefer labels such as `Contributing`, `Distribution`, `Architecture`, or `Agent guide` over `CONTRIBUTING.md` or `docs/DISTRIBUTION.md`.
 - Add a short `Contributing` section that points to `CONTRIBUTING.md`.
 - Add a short `License` section that points to `LICENSE`.
 - Link to `SECURITY.md` from the README when it materially helps navigation, but do not let it crowd the main user flow.
@@ -46,6 +48,9 @@ Use this order unless the repo gives a strong reason not to:
 - Use this section to link to deeper docs without dumping their contents into the README.
 - Keep the section even when the repo only has a small set of links.
 - Common links include About, Guides, Architecture, Deployment, and Security when those docs exist.
+- Order the links by reader importance, not by filesystem path or filename.
+- Do not use the `Docs` section as a dump of every top-level file. Keep `Contributing` and `License` in their own sections unless the repo has a strong reason not to.
+- If a repo needs to expose agent-only, generated, or otherwise internal navigation such as `AGENTS.md` or `fastlane/README.md`, put those links last or move them into a separate section such as `Repo Internals`.
 - Avoid repeating the same doc-link lists in multiple top-level files. Keep one canonical navigation area and let other docs link to it sparingly.
 - Keep it skimmable: a short list is usually enough.
 - Prefer one canonical location per workflow detail instead of mirroring the same checklist across `README.md`, `CONTRIBUTING.md`, and GitHub templates.
@@ -85,6 +90,7 @@ Use this order unless the repo gives a strong reason not to:
 
 - `README.md` answers what the project is, how to install it, and how to use it.
 - `README.md` includes a compact `Docs` section.
+- `README.md` uses human-facing doc labels instead of raw filenames or paths.
 - `README.md` includes short `Contributing` and `License` sections that point to the canonical files.
 - `CONTRIBUTING.md` explains how to set up an environment to contribute and how to validate changes.
 - Pull request and issue templates exist when they materially improve review or triage quality.

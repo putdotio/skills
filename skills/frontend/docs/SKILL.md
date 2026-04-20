@@ -6,6 +6,7 @@ description: Structure and rewrite docs for frontend repositories, especially RE
 # Frontend Docs
 
 Shape frontend repo docs around a clear split between user-facing docs and contributor-facing docs.
+Treat structure, labels, and ordering as part of the interface, not just as neutral file plumbing.
 
 ## Workflow
 
