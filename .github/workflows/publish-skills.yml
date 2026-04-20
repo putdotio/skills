@@ -20,6 +20,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          # Diff-based discovery needs access to github.event.before on push events
+          fetch-depth: 0
 
       - name: Collect changed tiles
         id: collect
