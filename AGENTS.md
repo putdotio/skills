@@ -9,4 +9,5 @@ Instructions for contributors in this repo.
 - Avoid duplicating guidance across skills. Put common workflow once in the most relevant source file.
 - Keep skill descriptions self-activating: say what the skill does, when to use it, and the main boundary when overlap is likely.
 - When changing a skill, update any adjacent examples or references that would drift with it.
+- When changing a skill, run `npx tessl skill review skills/<group>/<name>`; for broader skill work, run `./scripts/review-skills.sh` and use the feedback to tighten wording and workflow.
 - `CLAUDE.md` should remain a symlink to this file.
