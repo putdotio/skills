@@ -10,40 +10,22 @@ Shape frontend repo docs around a clear split between user-facing docs and contr
 ## Workflow
 
 1. Inspect the repository before drafting.
-2. Identify the project type, user install and usage flow, contributor setup flow, and any existing docs worth linking.
+2. Identify the project type, user install and usage flow, contributor setup flow, any GitHub collaboration templates already in use, and the best existing docs to link.
 3. Read [references/readme-guideline.md](references/readme-guideline.md) before picking a final shape.
 4. Start from [references/contributing-template.md](references/contributing-template.md) when creating or reshaping `CONTRIBUTING.md`.
 5. Start from [references/security-template.md](references/security-template.md) when creating or reshaping `SECURITY.md`.
-6. Put end-user install and usage in `README.md`.
-7. Put contributor environment setup, validation, and development workflow in `CONTRIBUTING.md`.
-8. Ensure the repo has `CONTRIBUTING.md`, `LICENSE`, and `SECURITY.md`; keep `SECURITY.md` private-first and use `devs@put.io` for security contact.
-9. Push deep implementation detail into linked docs when it starts to bloat the top-level docs.
-10. When a repo uses `AGENTS.md`, keep `CLAUDE.md` beside it as a symlink to `AGENTS.md` instead of maintaining a second authored guidance file.
-11. When a README uses shields badges, match the `putio-sdk-typescript` black flat style: `style=flat`, `colorA=000000`, `colorB=000000`, and `style="text-decoration:none;"` on the surrounding link.
-12. In checked-in docs, use repo-relative Markdown links for local files. Reserve absolute filesystem paths for chat/UI file references, not versioned docs.
-13. Verify that every claimed command, path, email address, doc link, and badge target exists.
-14. If any command, path, link, or badge target is broken, fix the doc and re-verify before stopping.
-
-Concrete shape:
-
-```md
-# README.md
-- What the project is
-- How to install or run it
-- How to use it
-- Where contributors should go next
-
-# CONTRIBUTING.md
-- Prerequisites
-- Setup
-- Verify/test commands
-- Branch or PR workflow
-```
+6. Put each concern in its canonical home: user flow in `README.md`, contributor workflow in `CONTRIBUTING.md`, security reporting in `SECURITY.md`, and detailed review prompts in GitHub templates.
+7. Ensure the repo has `CONTRIBUTING.md`, `LICENSE`, and `SECURITY.md`; keep `SECURITY.md` private-first and use `devs@put.io` for security contact.
+8. Push deep implementation detail into linked docs when it starts to bloat the top-level docs.
+9. When a repo uses `AGENTS.md`, keep `CLAUDE.md` beside it as a symlink to `AGENTS.md` instead of maintaining a second authored guidance file.
+10. In checked-in docs, use repo-relative Markdown links for local files. Reserve absolute filesystem paths for chat/UI file references, not versioned docs.
+11. Verify that every claimed command, path, email address, doc link, badge target, and GitHub template path exists.
+12. If any command, path, link, badge target, or template reference is broken, fix the doc and re-verify before stopping.
 
 Concrete checks:
 
 ```bash
-rg -n "README|CONTRIBUTING|SECURITY|AGENTS|CLAUDE|docs/" README.md CONTRIBUTING.md SECURITY.md AGENTS.md CLAUDE.md docs/
+rg -n "README|CONTRIBUTING|SECURITY|AGENTS|CLAUDE|docs/|pull_request_template|ISSUE_TEMPLATE" README.md CONTRIBUTING.md SECURITY.md AGENTS.md CLAUDE.md docs/ .github/
 test -e README.md && test -e CONTRIBUTING.md
 test ! -e AGENTS.md || { test -L CLAUDE.md && test "$(readlink CLAUDE.md)" = "AGENTS.md"; }
 ```
@@ -51,13 +33,7 @@ test ! -e AGENTS.md || { test -L CLAUDE.md && test "$(readlink CLAUDE.md)" = "AG
 ## Guardrails
 
 - Do not guess commands, environment variables, or deployment behavior.
-- Do not duplicate long content that already lives in repo docs.
-- Keep `README.md` focused on what the project is, how to install it, and how to use it.
-- Keep `CONTRIBUTING.md` focused on setting up an environment to contribute, validating changes, and contributor workflow.
-- Use `README.md`, `CONTRIBUTING.md`, `LICENSE`, and `SECURITY.md` as the default top-level doc set, with one responsibility per file.
-- Keep recurring doc links in one canonical navigation area instead of duplicating the same reference lists across multiple files.
-- Do not maintain separate authored copies of `AGENTS.md` and `CLAUDE.md`. If both are present, `CLAUDE.md` should be a symlink to `AGENTS.md`.
-- When a repo uses shields badges, keep them on the flat black put.io style instead of mixing colors or badge variants.
+- Prefer one canonical location per fact. Point to docs or templates instead of copying long checklists between them.
 - Do not hardcode volatile metrics such as test counts or coverage numbers.
 - Do not add generic filler sections that say nothing specific about the repo.
 - Do not cite or link unrelated external repos in generated docs unless the user explicitly asks for that.

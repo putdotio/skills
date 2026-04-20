@@ -48,6 +48,7 @@ Use this order unless the repo gives a strong reason not to:
 - Common links include About, Guides, Architecture, Deployment, and Security when those docs exist.
 - Avoid repeating the same doc-link lists in multiple top-level files. Keep one canonical navigation area and let other docs link to it sparingly.
 - Keep it skimmable: a short list is usually enough.
+- Prefer one canonical location per workflow detail instead of mirroring the same checklist across `README.md`, `CONTRIBUTING.md`, and GitHub templates.
 
 ## CONTRIBUTING.md
 
@@ -65,6 +66,7 @@ Use this order unless the repo gives a strong reason not to:
 - Start from `references/contributing-template.md` when the repo needs a new contributor guide.
 - Keep commands copy-pastable and verified against the repo.
 - Document repo-specific development constraints only when they materially help contributors.
+- If the repo uses `.github/pull_request_template.md` or `.github/ISSUE_TEMPLATE/*`, treat them as part of the contributor doc surface and keep the high-level expectations aligned.
 
 ## SECURITY.md
 
@@ -85,6 +87,7 @@ Use this order unless the repo gives a strong reason not to:
 - `README.md` includes a compact `Docs` section.
 - `README.md` includes short `Contributing` and `License` sections that point to the canonical files.
 - `CONTRIBUTING.md` explains how to set up an environment to contribute and how to validate changes.
+- Pull request and issue templates exist when they materially improve review or triage quality.
 - `SECURITY.md` uses private-first disclosure and points to `devs@put.io`.
 - `LICENSE` exists and is linked where appropriate.
 - User-facing docs do not drift into contributor setup.
