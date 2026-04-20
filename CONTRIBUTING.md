@@ -1,0 +1,45 @@
+# Contributing
+
+This repository stores shared agent skills for put.io development workflows.
+
+## Setup
+
+There is no repo-local bootstrap step beyond having `npx` available and access to Tessl for review and publish workflows.
+
+## Working in the repo
+
+- shared skills live under `skills/*`
+- keep top-level `SKILL.md` files concise and self-activating
+- move detailed examples, doctrine, and checklists into adjacent `references/*` files
+- avoid duplicating the same guidance across multiple skills when one shared source can own it
+
+## Validation
+
+For focused changes, review the affected skill directly:
+
+```bash
+npx tessl skill review --json skills/<group>/<name>
+```
+
+For broader changes, use the repository scripts:
+
+```bash
+./scripts/review-skills.sh
+```
+
+If you change publishable skill metadata or tile content, also run the tile checks documented in [Overview](./README.md).
+
+## Pull Requests
+
+Helpful pull requests usually include:
+
+- the affected skill paths
+- the Tessl review output or score changes when relevant
+- a short note about activation, boundary, or doctrine changes
+
+## Docs
+
+- keep [Overview](./README.md) focused on overview, installation, and publish-facing navigation
+- keep contributor workflow in this file
+- keep security reporting in [Security](./SECURITY.md)
+- keep agent-specific routing in [Agent guide](./AGENTS.md)

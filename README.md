@@ -37,4 +37,19 @@ tessl tile lint skills/frontend/docs
 tessl tile publish --dry-run skills/frontend/docs
 ```
 
-Publishing from GitHub Actions expects a repository secret named `TESSL_TOKEN`. See [docs/distribution.md](docs/distribution.md) for the publish flow and tile naming.
+Publishing from GitHub Actions expects a repository secret named `TESSL_TOKEN`. See [Distribution](docs/distribution.md) for the publish flow and tile naming.
+
+## Docs
+
+- [Contributing](./CONTRIBUTING.md) for contributor workflow and validation
+- [Distribution](./docs/distribution.md) for publish flow and repository release details
+- [Security](./SECURITY.md) for private vulnerability reporting
+
+## Repo Internals
+
+- [Agent guide](./AGENTS.md) for repo-specific automation guidance
+- [Scripts reference](./scripts/README.md) for helper script notes
+
+## Contributing
+
+Use [Contributing](./CONTRIBUTING.md) for skill-authoring workflow and review expectations.
