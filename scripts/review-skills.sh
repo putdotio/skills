@@ -19,7 +19,7 @@ for arg in "$@"; do
 done
 
 if [[ "$has_json" == true ]]; then
-  echo "batch review does not support --json; run npx tessl skill review --json skills/<path> per skill"
+  echo "batch review does not support --json; run npx tessl skill review --json skills/<group>/<name> per skill"
   exit 1
 fi
 
@@ -29,8 +29,8 @@ fi
 
 args+=("$@")
 
-for skill_md in skills/*/*/SKILL.md; do
+while IFS= read -r skill_md; do
   skill_dir="$(dirname "$skill_md")"
   echo "== tessl review: ${skill_dir#skills/} =="
   npx tessl skill review "${args[@]}" "$skill_dir"
-done
+done < <(find skills -mindepth 3 -maxdepth 3 -name SKILL.md | sort)

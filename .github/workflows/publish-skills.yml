@@ -1,0 +1,72 @@
+name: Publish Skills
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "skills/**"
+      - ".github/workflows/publish-skills.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      tiles: ${{ steps.collect.outputs.tiles }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Collect changed tiles
+        id: collect
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            tiles_json="$(find skills -mindepth 3 -maxdepth 3 -type f -name tile.json -exec dirname {} \; | sort | jq -Rsc 'split("\n") | map(select(length > 0))')"
+          else
+            tiles_json="$(
+              git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" -- 'skills/**' \
+                | awk -F/ 'NF >= 3 { print $1 "/" $2 "/" $3 }' \
+                | sort -u \
+                | while IFS= read -r tile; do
+                    [ -f "$tile/tile.json" ] && printf '%s\n' "$tile"
+                  done \
+                | jq -Rsc 'split("\n") | map(select(length > 0))'
+            )"
+          fi
+
+          echo "tiles=$tiles_json" >> "$GITHUB_OUTPUT"
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: discover
+    if: ${{ needs.discover.outputs.tiles != '[]' }}
+    env:
+      TESSL_THRESHOLD: "90"
+    strategy:
+      fail-fast: false
+      matrix:
+        tile: ${{ fromJson(needs.discover.outputs.tiles) }}
+    defaults:
+      run:
+        working-directory: ${{ matrix.tile }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Tessl
+        uses: tesslio/setup-tessl@v2
+        with:
+          token: ${{ secrets.TESSL_TOKEN }}
+
+      - name: Review skill
+        run: tessl skill review --threshold "$TESSL_THRESHOLD" .
+
+      - name: Lint tile
+        run: tessl tile lint
+
+      - name: Publish tile
+        run: tessl tile publish --bump patch
