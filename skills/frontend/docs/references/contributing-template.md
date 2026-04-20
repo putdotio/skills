@@ -45,5 +45,12 @@ Add or remove commands based on the repo. Keep only the checks contributors are 
 
 - Keep changes focused and explicit.
 - Add or update tests when behavior changes.
+- Keep this section high-level. Put the full review checklist in `.github/pull_request_template.md` when the repo has one.
+- Include the most helpful review evidence for the kind of change you made.
+  - screenshots or screen recordings for UI, layout, animation, onboarding, or copy changes
+  - sanity checks for risky or user-visible flows
+  - before and after benchmark numbers for performance-sensitive changes
+  - rollout, risk, or follow-up notes when touching auth, persistence, release flow, or external integrations
 - Prefer small follow-up pull requests over mixing unrelated cleanup into feature work.
+- Keep this section aligned with `.github/pull_request_template.md` when the repo has one.
 ````
