@@ -1,0 +1,4 @@
+interface:
+  display_name: "put.io SDK Dev"
+  short_description: "Develop or review put.io SDKs"
+  default_prompt: "Use $putio-sdk-dev when developing or reviewing put.io SDK repositories, API clients, and client libraries across TypeScript, Swift, Kotlin, and similar packages."
