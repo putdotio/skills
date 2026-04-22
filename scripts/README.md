@@ -37,8 +37,6 @@ This mutates files. Review the diff before committing.
 
 ## Notes
 
-- `collect-publish-tiles.sh` maps changed file paths to tile roots for the publish workflow
-- `resolve-publish-version.sh` bumps patch versions in CI until Tessl accepts an unused version for publish
 - `review-skills.sh` is the batch entrypoint for local skill review
 - `optimize-skills.sh` applies mutations, so run it intentionally and inspect the resulting diff
 - CI runs `./scripts/review-skills.sh` on pull requests and pushes to `main`
