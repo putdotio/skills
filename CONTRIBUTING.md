@@ -27,9 +27,7 @@ For broader changes, use the repository scripts:
 ./scripts/review-skills.sh
 ```
 
-If you change publishable skill metadata or tile content, also run the tile checks documented in [Overview](./README.md).
-
-If the skill has `agents/openai.yaml`, keep the picker-facing display name, short description, and default prompt aligned with the skill branding and scope.
+If you change publishable skill metadata such as `tile.json` or `agents/openai.yaml`, run the tile checks documented in [Overview](./README.md) and keep the picker-facing metadata aligned with the skill branding and scope.
 
 ## Pull Requests
 

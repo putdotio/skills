@@ -41,13 +41,7 @@ Publishing from GitHub Actions expects a repository secret named `TESSL_TOKEN`. 
 
 ## Publishable skill shape
 
-Public skills in this repo should keep their package metadata next to the skill:
-
-- `SKILL.md` is the skill body and activation contract
-- `tile.json` is the Tessl package and publish metadata
-- `agents/openai.yaml` sets picker-facing OpenAI or Codex display names, descriptions, and default prompts when the default fallback naming is not good enough
-
-Keep those files aligned when adding or renaming a published skill.
+Published skills keep their package metadata next to the skill. Use [Distribution](docs/distribution.md) as the source of truth for `tile.json`, optional `agents/openai.yaml`, and Tessl publishing behavior.
 
 ## Docs
 
