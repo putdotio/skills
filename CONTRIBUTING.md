@@ -29,6 +29,8 @@ For broader changes, use the repository scripts:
 
 If you change publishable skill metadata or tile content, also run the tile checks documented in [Overview](./README.md).
 
+If the skill has `agents/openai.yaml`, keep the picker-facing display name, short description, and default prompt aligned with the skill branding and scope.
+
 ## Pull Requests
 
 Helpful pull requests usually include:

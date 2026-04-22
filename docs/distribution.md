@@ -15,6 +15,8 @@ jq -r '.name' skills/*/*/tile.json
 ## How publishing works
 
 - Each skill directory under `skills/*/*` has its own `tile.json`
+- `tile.json` is the source of truth for Tessl package identity and publishing
+- `agents/openai.yaml` is optional, but when present it is the source of truth for OpenAI or Codex picker-facing display names, descriptions, and default prompts
 - `.github/workflows/publish-skills.yml` lints and publishes only the tiles that changed on pushes to `main`
 - If the workflow is run manually, it publishes all tiles
 - The publish workflow uses [`uinaf/tessl-publish-action`](https://github.com/uinaf/tessl-publish-action) to detect changed tiles, run review and lint, and publish them
