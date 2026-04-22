@@ -21,24 +21,31 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          # Diff-based discovery needs access to github.event.before on push events
+          # paths-filter compares pushed commits locally, so discovery needs history
           fetch-depth: 0
+
+      - name: Detect changed publish inputs
+        if: ${{ github.event_name != 'workflow_dispatch' }}
+        id: filter
+        uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
+        with:
+          list-files: json
+          filters: |
+            changed:
+              - 'skills/**'
+              - '.github/workflows/publish-skills.yml'
 
       - name: Collect changed tiles
         id: collect
+        env:
+          CHANGED_FILES_JSON: ${{ steps.filter.outputs.changed_files }}
         run: |
+          set -euo pipefail
+
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            tiles_json="$(find skills -mindepth 3 -maxdepth 3 -type f -name tile.json -exec dirname {} \; | sort | jq -Rsc 'split("\n") | map(select(length > 0))')"
+            tiles_json="$(scripts/collect-publish-tiles.sh --all)"
           else
-            tiles_json="$(
-              git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" -- 'skills/**' \
-                | awk -F/ 'NF >= 3 { print $1 "/" $2 "/" $3 }' \
-                | sort -u \
-                | while IFS= read -r tile; do
-                    [ -f "$tile/tile.json" ] && printf '%s\n' "$tile"
-                  done \
-                | jq -Rsc 'split("\n") | map(select(length > 0))'
-            )"
+            tiles_json="$(scripts/collect-publish-tiles.sh --files-json "${CHANGED_FILES_JSON:-[]}")"
           fi
 
           echo "tiles=$tiles_json" >> "$GITHUB_OUTPUT"
