@@ -33,6 +33,37 @@ type SubtitleResult =
 
 Avoid unsafe casts, ignored type failures, and ad hoc JSON parsing when `Schema` already covers the boundary.
 
+Expose ergonomic helpers on top of typed errors instead of forcing every consumer to rebuild the same checks:
+
+```ts
+export const isAuthError = (error: PutioSdkError): boolean =>
+  error._tag === "ApiError" && error.code === "invalid_token";
+
+export const getLocalizedError = (error: PutioSdkError): string =>
+  localizePutioError(error).summary;
+```
+
+Model pagination and query-dependent response shapes explicitly:
+
+```ts
+type PageInput = {
+  readonly perPage?: number;
+  readonly cursor?: string;
+};
+
+type ListFilesInput<IncludeParent extends boolean = false> = PageInput & {
+  readonly parentId?: number;
+  readonly includeParent?: IncludeParent;
+};
+
+type ListFilesResult<IncludeParent extends boolean> = {
+  readonly files: ReadonlyArray<PutioFile>;
+  readonly cursor: string | null;
+} & (IncludeParent extends true
+  ? { readonly parent: PutioFile | null }
+  : { readonly parent?: never });
+```
+
 ## Kotlin
 
 Model backend state with explicit types and tolerate forward-compatible backend values where needed:
@@ -54,6 +85,32 @@ value class PutioFileType(val raw: String) {
 
 Keep coroutine APIs domain-first and keep request, response, and error models updated together.
 
+Expose helpers around typed exceptions when they materially improve app code:
+
+```kotlin
+fun PutioException.isRetryable(): Boolean =
+    this is PutioException.Transport || this is PutioException.RateLimited
+
+fun PutioException.userMessage(localizer: PutioErrorLocalizer): String =
+    localizer.localize(this).summary
+```
+
+Prefer explicit pagination and query models over raw maps:
+
+```kotlin
+@Serializable
+data class PageCursor(
+    val cursor: String? = null,
+    @SerialName("per_page") val perPage: Int? = null,
+)
+
+@Serializable
+data class ListFilesQuery(
+    @SerialName("parent_id") val parentId: Long? = null,
+    val cursor: String? = null,
+)
+```
+
 ## Swift
 
 Keep public contracts explicit and preserve a stable package surface:
@@ -72,6 +129,38 @@ public enum PutioSDKError: Error, Sendable {
 ```
 
 Use the example app for auth-flow and integration smoke checks when a formal live harness is not available yet.
+
+Expose small adapters around typed errors when apps need them:
+
+```swift
+extension PutioSDKError: LocalizedError {
+    public var errorDescription: String? { localizedSummary }
+}
+
+extension PutioSDKError {
+    public var isRetryable: Bool {
+        switch self {
+        case .transport: true
+        default: false
+        }
+    }
+}
+```
+
+Prefer explicit query and pagination types over `[String: Any]`-style bags:
+
+```swift
+public struct PageCursor: Sendable, Equatable {
+    public let cursor: String?
+    public let perPage: Int?
+}
+
+public struct ListFilesQuery: Sendable, Equatable {
+    public let parentId: Int64?
+    public let cursor: String?
+    public let includeParent: Bool
+}
+```
 
 ## Verification Layers
 

@@ -10,11 +10,17 @@ Use this skill when working in a put.io SDK repository rather than an end-user a
 ## Quick Rules
 
 - Treat each SDK as a public package, not an internal compatibility layer.
+- Treat TypeScript as the canonical full put.io API client, not just the richest reference.
 - Keep the public surface domain-first and strongly typed for the host language.
 - Parse external data at the boundary and preserve typed errors as first-class contracts.
 - For TypeScript SDKs, default to the strictest safe contract shape the package can support.
+- For Swift and Kotlin SDKs, accept narrower scope than TypeScript when app usage justifies it, but keep the same quality bar.
 - Treat both deterministic unit tests and safe live tests as part of a healthy SDK repo.
 - Prefer the repo's native architecture and verification style instead of forcing one SDK's implementation style onto another.
+
+## SDK Vision
+
+Read [references/sdk-vision.md](references/sdk-vision.md) when the work touches SDK scope, endpoint-family coverage, cross-language philosophy, parity questions, or long-term direction.
 
 ## Source Of Truth Order
 
@@ -36,6 +42,7 @@ Read only what you need:
 - package overview such as `README.md`
 - architecture and testing docs under `docs/*`
 - release docs when the change affects publishing or CI
+- [references/sdk-vision.md](references/sdk-vision.md) when you need the shared put.io SDK doctrine
 - [references/patterns.md](references/patterns.md) when you need concrete examples for typed boundaries, live-test layering, or multi-client alignment
 
 If the repo has a canonical verify command, use that as the source of truth before editing delivery automation.
@@ -51,6 +58,15 @@ If the repo has a canonical verify command, use that as the source of truth befo
 7. Keep multiple public clients aligned when the repo exposes more than one interface style.
 8. Update package-facing docs and release notes when the public surface changes.
 
+Typical contract-change shape:
+
+- verify backend behavior and current app usage first
+- add or tighten typed request input
+- add or tighten typed response parsing at the boundary
+- add or tighten operation-specific error mapping
+- add deterministic tests for request shaping, parsing, and error behavior
+- add or refresh safe live verification if the endpoint behavior matters in production
+
 Concrete checks:
 
 ```bash
@@ -62,11 +78,14 @@ rg -n "verify|liveTest|test:live|example" README.md AGENTS.md docs .github
 ## Type And Contract Rules
 
 - prefer explicit enums, discriminated unions, sealed hierarchies, or value wrappers over optional bags
+- prefer typed query inputs and explicit pagination models over loose parameter maps
 - prefer parameter-aware return types and conditional typing where the SDK already models contract differences that way
 - preserve unknown backend enum or string values when forward compatibility matters
 - update request, response, and error contracts together so the typed surface cannot silently drift
+- provide ergonomic helpers around typed errors when they materially improve consumer code
 - keep transport helpers in shared core files and domain logic in namespace or feature modules
 - avoid compatibility aliases and legacy naming unless the SDK already exposes them as supported API
+- do not keep raw JSON or untyped dictionary results as a long-term public surface
 - follow the concrete patterns in [references/patterns.md](references/patterns.md) when the repo does not already establish a better local convention
 
 Short examples:
@@ -86,8 +105,8 @@ value class PutioFileType(val raw: String)
 Choose the guidance that matches the SDK you are in:
 
 - TypeScript: stay Effect-first, keep `Schema` at boundaries for request, response, config, and error shapes, keep Promise and Effect clients aligned, prefer discriminated unions and explicit exports over loose option bags, and do not weaken the surface with unsafe casts or ignored type failures unless explicitly approved
-- Kotlin: prefer coroutine-first APIs, keep models serialization-friendly, and stay close to the TypeScript contract shape
-- Swift: keep the package surface open-source-safe, preserve the package and CocoaPods install surface, and verify the example app when auth or integration behavior changes
+- Kotlin: prefer coroutine-first APIs, keep models serialization-friendly, prefer explicit error contracts over generic failures, and stay close to the TypeScript contract shape without forcing full endpoint parity
+- Swift: prefer `async throws`, keep the package surface open-source-safe, preserve the package and CocoaPods install surface, verify the example app when auth or integration behavior changes, and avoid callback or raw-JSON compatibility layers as the long-term API
 
 ## Verification
 
