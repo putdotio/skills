@@ -1,0 +1,4 @@
+interface:
+  display_name: "put.io Frontend Patterns"
+  short_description: "Apply put.io frontend code patterns"
+  default_prompt: "Use $putio-frontend-patterns to apply put.io frontend code patterns (type/schema-driven, parse don't validate, state machines for bug-sensitive flows) and to seed or extend the repo's `.patterns/` folder with tailored conventions."

@@ -1,0 +1,284 @@
+# put.io Frontend Defaults
+
+Defaults for put.io frontend repositories when `.patterns/<topic>.md` is silent. A repo's own `.patterns/` always wins — this file describes the fallback and cites real reference code.
+
+The principles below are universal across put.io frontend repos. The *implementations* vary by constraint (Effect Schema where it fits, lightweight parsers where bundle size dictates, native enums in Swift/Kotlin). Each section ends with what to imitate from which repo.
+
+## Type and Schema Driven Development
+
+The contract lives in a schema. Types are derived from the schema. Code never re-declares the same shape in two places.
+
+- For TypeScript, the put.io default is Effect's `Schema`. See `putio-sdk-typescript` `src/domains/files.ts` — base schemas, broad schemas with optionals, query schemas, response envelopes — all named on a strict hierarchy: `FileBaseSchema` → `FileBroadSchema` → `FilesListEnvelopeSchema`.
+- Type extraction follows the schema, never the other way around: `export type FileType = Schema.Schema.Type<typeof FileTypeSchema>`. Do not hand-write a parallel `type X = { ... }` next to the schema.
+- Brand entity IDs so unrelated numeric or string IDs cannot cross. A small helper goes a long way:
+
+  ```ts
+  const makeEntityId = <Brand extends string>(brand: Brand) =>
+    Schema.String.pipe(Schema.brand(brand));
+  export const FileId = makeEntityId("FileId");
+  export const TransferId = makeEntityId("TransferId");
+  // FileId and TransferId are now incompatible at the type level.
+  ```
+
+- Schemas live next to the boundary they describe: API responses next to the API client, form values next to the form, URL params next to the route.
+- For multi-consumer repos (server + web, app + SDK, monorepo with shared types), keep schemas in a *no-runtime* package — schema definitions only, no services, no helpers. The boundary between contract and implementation stays clean.
+- Where Effect Schema is too heavy (constrained runtimes like Tizen 3.0 / webOS 3.x — see `putio-web/apps/tv-vite/src/core/api/parse.ts`), use small typed-narrowing helpers (`getRecord`, `getString`, `getNumber`) plus per-field type guards. The bar is the same: nothing leaves the boundary as `unknown`.
+- Where native typing exists (Swift `Codable`, Kotlin serialization), use it — but still parse at the boundary. See `putio-ios/Putio/Features/MediaPlayers/VideoPlayerViewController.swift` for `Codable` + `JSONEncoder`/`JSONDecoder` against `UserDefaults`.
+
+Imitate: `putio-sdk-typescript/src/domains/*.ts` for TypeScript schema shape and naming.
+
+## Parse, Don't Validate
+
+External input becomes a typed value at the boundary, or it does not enter the program.
+
+- Network responses, URL params, `localStorage`, `postMessage`, file contents, query strings, environment variables — all parsed at the edge.
+- A "validated" value still typed as `unknown`, `any`, `Record<string, unknown>`, or "the same shape but with `// trust me`" is **not parsed**. Keep going until the value is fully typed.
+- Parse failures are typed errors, not thrown strings. See `putio-sdk-typescript/src/core/http.ts`: `requestJson` → `decodeSuccessJson` for success branch, `decodeFailure` for HTTP error branch, both yielding `PutioSdkError` values.
+- For non-HTTP boundaries, the same rule holds. See `putio-cli/src/internal/config.ts` for env-var parsing wrapped in `Effect.try` → `CliConfigError`, and `putio-cli/src/commands/files.ts` for CLI input schemas (`FilesMkdirInputSchema`, `FilesDeleteInputSchema`) with embedded business rules.
+- Once parsed, the typed value flows inward unchanged. Inner code does not re-validate, re-coerce, or guard with `if (!data) return null`. Those guards are signals that the boundary leaked.
+
+Imitate: `putio-sdk-typescript/src/core/http.ts` (`requestJson`), `putio-cli/src/internal/config.ts` (env + file), `putio-web/apps/tv-vite/src/features/files/api/files-api.ts` (lightweight type-guard parsers).
+
+## Make Impossible States Impossible
+
+The render tree should not need defensive checks.
+
+- Discriminated unions over flag bags. The canonical putio example is `putio-sdk-typescript/src/domains/transfers.ts` `TransferSchema`:
+
+  ```ts
+  // ERROR branch *requires* error_message; COMPLETED branch *forbids* it.
+  const TransferErrorSchema = Schema.extend(
+    TransferBaseSchema.pipe(Schema.omit("error_message", "status")),
+    Schema.Struct({
+      error_message: Schema.String,
+      status: Schema.Literal("ERROR"),
+    }),
+  );
+  export const TransferSchema = Schema.Union(
+    TransferErrorSchema,
+    TransferLiveSchema,
+    TransferTorrentSeedingSchema,
+    TransferCompletedSchema,
+    TransferBaseSchema,
+  );
+  ```
+
+- Conditional response narrowing tied to query params: `putio-sdk-typescript/src/domains/account.ts` `AccountInfoResponseFor<TQuery>` adds `download_token`, `features`, `pas` only when the query asked for them. Run-time guard (`failMissingField`) backs the type-level guarantee.
+- For non-Effect TypeScript, plain discriminated unions still work: `putio-web/packages/features/src/billing/types.ts` models `AppPaymentMethod` as `{ type: "cryptocurrency"; currency: Cryptocurrency } | { type: "card" } | { type: "local-option" }`.
+- For Swift, enums with associated values do the same job: `putio-ios/Putio/Features/Auth/TwoFactorAuth/EnableTwoFactorSecretViewModel.swift` `enum State { case idle, loading, success(data: String), failure(error: Error) }`.
+- Exhaustive matches at every fork. `Match` from Effect, `switch` with `never` fallthrough, or pattern matches in Swift. Adding a new state should fail the type checker until every site handles it.
+- For unions whose server end can extend (status enums, error codes), include an `unknown` fallback variant at the *list-item* parser, not the response parser. A new server status should leave one row in a degraded "unknown" state, not blank out the whole list.
+
+Imitate: `putio-sdk-typescript/src/domains/transfers.ts` for HTTP response unions; `putio-ios` view models for state enums.
+
+## State Machines for Bug-Sensitive Flows
+
+Auth, payment, video conversion, video playback, upload, transfer lifecycle — model them explicitly when transitions actually matter. Bugs in these flows cost trust.
+
+Skip a state machine for trivial toggles, single-screen forms, or anywhere "did we forget a state" is not a real failure mode. `useState` is fine for local UI state. Do not state-machine for the sake of it.
+
+- The shape varies by repo. The principle does not: enumerate states, name transitions, attach effects to states (not to event handlers).
+- **In Effect TypeScript**, model the loop as `Effect.gen` with explicit state and exit conditions. See `putio-cli/src/internal/auth-flow.ts` `waitForDeviceToken`: a polling loop with `Clock`, deadline check, `Duration.millis` sleep, terminal conditions explicit. No implicit retries, no callback chains.
+- **In React TypeScript**, the put.io recommendation is XState. When XState meets an Effect-based service layer, bridge them inside `fromPromise` so the machine stays pure and services stay typed:
+
+  ```ts
+  const machine = setup({
+    types: { context: {} as Ctx, events: {} as Evt },
+    actors: {
+      updatePlan: fromPromise(({ input }: { input: UpdatePlanInput }) =>
+        RuntimeClient.runPromise(
+          Effect.gen(function* () {
+            const api = yield* PutioSdk;
+            yield* api.transfers.update(input);
+          }).pipe(Effect.tapErrorCause(Effect.logError)),
+        ),
+      ),
+    },
+  }).createMachine({
+    states: {
+      Updating: {
+        invoke: {
+          src: "updatePlan",
+          input: ({ event }) => event.payload,
+          onError: { target: "Idle", actions: assign(...) },
+          onDone: { target: "Idle" },
+        },
+      },
+    },
+  });
+  ```
+
+  Effect owns services, DI, and error propagation. XState owns UX flow. They meet at `RuntimeClient.runPromise` inside `fromPromise` — no service refs in machine context, no closures over the runtime. A repo may pick another lib (Effect's `Machine`, a typed reducer); encode the choice in `.patterns/state-machines.md`.
+
+- **In Swift / Kotlin**, plain enums with associated values work. See `putio-ios/Putio/Features/History/HistoryViewModel.swift` `enum State { case idle, loading, empty, loaded, refreshing, failure(error: PutioSDKError) }` driven through a delegate callback.
+- The machine is the source of truth for which transitions are allowed. The UI dispatches events; it does not call `setState` to "force" a state.
+- Side effects (network, storage, navigation) live as `entry`, `exit`, or invoked services on states — never inline in event handlers.
+- Test the machine separately from the UI. Send events, assert state transitions, assert side effects fired.
+
+A specifically valuable shape: **reconnect / retry as explicit state**. For anything that polls or reconnects (transfer status stream, video player segment fetch, websocket session), keep the retry state as a plain struct with a `phase` discriminator and a *computed* `nextRetryAt` ISO timestamp — not a hidden `setTimeout`:
+
+```ts
+type ReconnectStatus = {
+  phase: "connected" | "connecting" | "disconnected";
+  reconnectPhase: "idle" | "waiting" | "attempting" | "exhausted";
+  attemptCount: number;
+  disconnectedAt: string | null;
+  nextRetryAt: string | null;
+};
+
+const nextDelayMs = (attempt: number, max = 7) =>
+  attempt >= max
+    ? null
+    : Math.min(1_000 * 2 ** attempt, 64_000);
+```
+
+Tests can assert exact retry timing instead of waiting on real timers. UI can render `nextRetryAt` directly without owning the timer.
+
+A related shape: **long-running ops emit `{ current, total, label }` progress events; the UI plugs in.** Keep migration, bulk file move, large upload, conversion-job code headless — it accepts a `progress?: (p: { current: number; total: number; label: string }) => void` callback. The CLI renders a TTY bar, the web app renders a modal, the native app renders a progress sheet. None of those concerns leak into the operation itself, and tests assert progress event sequence instead of UI output.
+
+Imitate: `putio-cli/src/internal/auth-flow.ts` for Effect-native; `putio-ios` view models for native-language enum machines.
+
+## Errors
+
+- Errors are typed values with context, not thrown strings. The putio reference is `Data.TaggedError` in TypeScript:
+
+  ```ts
+  // putio-sdk-typescript/src/core/errors.ts
+  export class PutioApiError extends Data.TaggedError("PutioApiError")<{
+    readonly status: number;
+    readonly body: PutioErrorEnvelope;
+  }> {}
+  ```
+
+- Operation-specific errors are declared up front via specs that list known status codes and error types. See `putio-sdk-typescript/src/core/errors.ts` `definePutioOperationErrorSpec` and the per-operation usage `QueryFilesErrorSpec` in `src/domains/files.ts`. Unknown errors fall through to the base union; known errors become `PutioOperationError` with full context.
+- UI surfaces errors via *localizers*, not by switching on raw error shapes inside components. The pattern: a localizer matches an error (by status code, error-type string, or predicate) and returns `{ message, recoverySuggestion }`. See `putio-cli/src/internal/localize-error.ts` and `putio-ios/Putio/Common/API/PutioSDK+ErrorLocalizer.swift`. The same pattern applies in React.
+- The localizer is also the redaction chokepoint: raw `PutioApiError.body`, request URLs with query strings, and stack traces never reach UI text, telemetry, or third-party SDKs (Sentry, analytics) without going through it.
+- Error boundaries exist at the route or feature level, not wrapped around every component.
+- Distinguish *expected error the user can act on* (typed, rendered inline) from *unexpected crash* (caught by the boundary, logged, generic fallback).
+- Never log or surface secrets. `putio-cli/src/internal/output-service.ts` redacts `auth_token`, `Bearer`, and query params before terminal output — model that level of paranoia.
+
+Imitate: `putio-sdk-typescript/src/core/errors.ts` for typed error model; `putio-cli/src/internal/localize-error.ts` for localizer composition.
+
+## Effect Runtime Wiring (TypeScript)
+
+Where Effect is the runtime — and it is the put.io default for new TypeScript code outside legacy bundles — keep the wiring explicit:
+
+- Services as `Context.Tag`. See `putio-sdk-typescript/src/core/http.ts` `PutioSdkConfig` and `putio-cli/src/internal/runtime.ts` `CliRuntime`.
+- Live implementations as `Layer.effect` or `Layer.succeed`. Compose with `Layer.mergeAll` and explicit `Layer.provide`. See `putio-cli/src/internal/app-layer.ts`.
+- Promise-facing callers wrap effects via a small adapter — see `putio-sdk-typescript/src/core/client.ts` `provideSdk` that runs the effect against a `ManagedRuntime` and reshapes the failure with `rejectWithSdkFailure`. The Effect surface stays runtime-free; the Promise surface owns lifecycle (`dispose()`).
+- Tests provide layers with mock services, not by reaching into globals. See `putio-sdk-typescript/test/support/sdk-test.ts` `provideSdkTest(effect, mockHandler, config)`.
+
+## Server State
+
+Server state is a different beast from UI state. It's not yours — it's a cache of someone else's truth — so it needs invalidation, deduplication, retry, refetch-on-focus, abort-on-unmount, and stale-while-revalidate. Every one of those is a bug source when hand-rolled in `useEffect` + `useState` + `fetch`.
+
+The put.io default for HTTP-shaped server state is **TanStack Query**. `putio-web/apps/tv-vite` and `putio-web/packages/features` both use it; new code in either repo (and any new web frontend) should match.
+
+```ts
+// queries/transfers.ts — keys are structured, namespaced, and typed.
+export const transfersKey = (filter: TransferFilter) =>
+  ["transfers", filter] as const;
+
+export const useTransfers = (filter: TransferFilter) =>
+  useQuery({
+    queryKey: transfersKey(filter),
+    queryFn: () => RuntimeClient.runPromise(PutioSdk.pipe(Effect.flatMap((sdk) => sdk.transfers.list(filter)))),
+  });
+
+export const useCancelTransfer = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: TransferId) =>
+      RuntimeClient.runPromise(PutioSdk.pipe(Effect.flatMap((sdk) => sdk.transfers.cancel(id)))),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["transfers"] }),
+  });
+};
+```
+
+Rules:
+
+- **Do not hand-roll `useEffect` + `useState` + `fetch`** for server reads. You will reinvent loading, error, dedup, abort, retry, and stale-while-revalidate — and one of them will leak. Use `useQuery`.
+- **Query keys are arrays, namespaced per feature**, with the input as a structured payload, not a stringified blob. `["transfers", filter]` not `` `transfers-${JSON.stringify(filter)}` ``. Cache invalidation works on prefix.
+- **Mutations invalidate the cache, not local state**. `onSuccess: invalidateQueries({ queryKey: ["transfers"] })`. Optimistic flows use `onMutate` to set + return a snapshot, `onError` to roll it back. See `putio-web/packages/features/src/user-config/queries/config.ts`.
+- **TanStack Query for server reads, `useActionEffect` (or `useMutation`) for writes** — pick `useMutation` when there is a cache to invalidate; `useActionEffect` when the action is a one-off RPC with no cached read.
+- **Polling lives next to the query key**, not next to the component. `refetchInterval: 5_000` on the query, not `setInterval` in a `useEffect`.
+
+
+
+For form mutations in Effect-React code, the put.io default is a small `useActionEffect` bridge over React 19's `useActionState`. Keep the FormData → Schema → Effect flow as one typed pipeline; do not assemble an intermediate plain object first.
+
+```ts
+export const useActionEffect = <Payload, A, E, R>(
+  runtime: ManagedRuntime.ManagedRuntime<R, never>,
+  effect: (payload: Payload) => Effect.Effect<A, E, R>,
+) =>
+  useActionState<E | null, Payload>(
+    (_, payload) =>
+      runtime.runPromise(
+        effect(payload).pipe(
+          Effect.match({ onFailure: Function.identity, onSuccess: Function.constNull }),
+        ),
+      ),
+    null,
+  );
+```
+
+Usage — schema decode happens inside the Effect, parse errors stay typed alongside business errors, and there is no separate validate-then-submit step:
+
+```tsx
+const [error, action, pending] = useActionEffect(RuntimeClient, (formData: FormData) =>
+  Effect.gen(function* () {
+    const sdk = yield* PutioSdk;
+    const input = yield* Schema.decodeUnknown(RenameFileInput)({
+      fileId: formData.get("fileId"),
+      name: formData.get("name"),
+    });
+    yield* sdk.files.rename(input);
+  }),
+);
+
+<form action={action}>
+  <fieldset disabled={pending}>...</fieldset>
+</form>;
+```
+
+Read keys explicitly via `formData.get(name)` (or `formData.getAll(name)` for multi-value fields like checkbox groups). Avoid `Object.fromEntries(formData)` — it silently coalesces repeated names (last-wins, a real correctness bug for permission/tag forms) and feeds attacker-controlled keys into the schema decoder.
+
+A TanStack Query mutation that invalidates the relevant query keys does not need to update local state — the next read picks up the change. Skip optimistic updates unless the user-perceived latency actually warrants them.
+
+## Component and State Placement
+
+- Components are deep modules: small surface (props), meaningful interior. A wrapper that forwards every prop unchanged is not pulling its weight.
+- Keep state local until a second consumer needs it. Do not lift to context or a global store preemptively.
+- Effects (data fetching, subscriptions, storage, telemetry) live at leaves and adapters. Pages compose; leaves do.
+- Server-state and UI-state are different concerns; do not put server state into Redux/Zustand/Context "for consistency". See *Server State* above.
+- Pure render trees: a component that takes typed props and returns JSX with no side effects is the easiest thing to test, animate, and refactor.
+
+Imitate: `putio-web/apps/tv-vite/src/ui/screen.tsx` for clean composable primitives.
+
+## Styling
+
+put.io has multiple valid styling stacks depending on constraints:
+
+- Tailwind v4 + design tokens for new general-purpose web work.
+- Plain CSS modules + TS theme tokens where bundle size or old-browser support matters (`putio-web/apps/tv-vite/src/core/theme.ts`, `src/styles.css`).
+- Emotion + Theme-UI in legacy bundles (`putio-web/apps/app`) — keep working, do not extend.
+
+Pick the repo's existing stack. If the repo is silent, default to Tailwind v4 for new web work. Encode the choice in `.patterns/styling.md`.
+
+## Testing Shape
+
+- Write tests at the level the bug would surface: a parse bug needs a parse test, a state-machine bug needs a machine test, a render bug needs a render test, an interaction bug needs an interaction test.
+- Prefer real implementations over mocks at the contract boundary. Mock the network if you must, but parse the same way production does. See `putio-sdk-typescript/test/support/sdk-test.ts` for layered mock injection.
+- Live tests against shared accounts are gated by env/secret hydration and `describe.sequential`. See `putio-sdk-typescript/test/live/auth.test.ts` and `test/live/support/helpers.ts`. Do not add destructive coverage against shared accounts.
+- TypeScript repos use `vite-plus/test` (Vitest). E2E uses Playwright.
+- Do not assert on logger output, real timers, or implementation internals. Those tests pass by construction and rot fastest.
+
+Imitate: `putio-cli/src/internal/state.test.ts` for Effect tests with `Effect.runPromiseExit` + `Cause.failureOption`.
+
+## Verification Before "Done"
+
+- Type-check, lint, unit tests pass — necessary, not sufficient for UI work.
+- Exercise the feature in a browser or device. Click the golden path. Try one edge case. Watch the network tab and console.
+- If the UI cannot be exercised (no dev server, no preview), say so explicitly in the PR — do not claim success on type checks alone.
+- Run the repo's `verify` (or equivalent) — `putio-sdk-typescript/scripts/`, `putio-cli/scripts/`, and the modern frontend repos all expose one canonical command.
