@@ -22,7 +22,7 @@ The contract lives in a schema. Types are derived from the schema. Code never re
 
 - Schemas live next to the boundary they describe: API responses next to the API client, form values next to the form, URL params next to the route.
 - For multi-consumer repos (server + web, app + SDK, monorepo with shared types), keep schemas in a *no-runtime* package — schema definitions only, no services, no helpers. The boundary between contract and implementation stays clean.
-- Where Effect Schema is too heavy (constrained runtimes like Tizen 3.0 / webOS 3.x — see `putio-web/apps/tv-vite/src/core/api/parse.ts`), use small typed-narrowing helpers (`getRecord`, `getString`, `getNumber`) plus per-field type guards. The bar is the same: nothing leaves the boundary as `unknown`.
+- Where Effect Schema is too heavy for the target runtime — see `putio-web/apps/tv-vite/src/core/api/parse.ts` for the smart-TV approach — use small typed-narrowing helpers (`getRecord`, `getString`, `getNumber`) plus per-field type guards. The bar is the same: nothing leaves the boundary as `unknown`.
 - Where native typing exists (Swift `Codable`, Kotlin serialization), use it — but still parse at the boundary. See `putio-ios/Putio/Features/MediaPlayers/VideoPlayerViewController.swift` for `Codable` + `JSONEncoder`/`JSONDecoder` against `UserDefaults`.
 
 Imitate: `putio-sdk-typescript/src/domains/*.ts` for TypeScript schema shape and naming.
@@ -206,6 +206,8 @@ Rules:
 
 
 For form mutations in Effect-React code, the put.io default is a small `useActionEffect` bridge over React 19's `useActionState`. Keep the FormData → Schema → Effect flow as one typed pipeline; do not assemble an intermediate plain object first.
+
+When the form mutates a server read that lives in a TanStack Query cache (rename in a file list, cancel in a transfer list, edit in a settings query), prefer `useMutation` from the *Server State* section above and call its `mutate` from the form's action handler — that way the cache invalidation lives next to the mutation. Reserve `useActionEffect` for one-off RPC actions with no cached read on the other side (login, OTP verification, fire-and-forget settings save).
 
 ```ts
 export const useActionEffect = <Payload, A, E, R>(

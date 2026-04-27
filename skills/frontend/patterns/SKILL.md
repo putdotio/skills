@@ -61,7 +61,7 @@ const parseFile = (input: unknown): Effect.Effect<PutioFile, ParseError> =>
 
 Impossible states made impossible — required fields appear only on the branch that actually has them:
 
-```ts
+```tsx
 type TransferStatus =
   | { status: "LIVE"; progress: number }
   | { status: "COMPLETED"; completed_at: string }
@@ -87,4 +87,3 @@ When deciding how to structure a new boundary, parser, state machine, or error t
 - `putio-frontend-repos` — repo CI and delivery shape (verify, publish, deploy).
 - `putio-frontend-docs` — README, CONTRIBUTING, SECURITY structure.
 - `putio-sdk-dev` — SDK package patterns (namespaces, typed contracts, multi-language parity).
-- `viteplus`, `effect-ts`, `react-doctor`, `vercel-react-best-practices`, `emil-design-eng` — deeper specifics inside their domain. Reach for them when the task is squarely in their area; this skill defers to them.
