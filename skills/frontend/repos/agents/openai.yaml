@@ -1,4 +1,22 @@
 interface:
   display_name: "put.io Frontend Repos"
   short_description: "Standardize repo delivery"
-  default_prompt: "Use $putio-frontend-repos to structure this frontend repository around one repo-local verify command, CI guardrails, and a continuous publish or deploy flow that only runs after verify passes."
+  default_prompt: |
+    Use $putio-frontend-repos.
+
+    Goal: structure a frontend repository around a repo-local verify command, CI guardrails, and continuous publish or deploy flow that only runs after verify passes.
+
+    Success criteria:
+    - Repo kind, verify entrypoint, delivery target, versioning tool, and template gaps are identified from current files.
+    - CI calls the repo-local verify command directly before publish or deploy.
+    - Package repos remain continuously publishable and app repos remain continuously deployable from the `main` branch.
+    - Existing working release or deploy plumbing is preserved unless repo evidence shows it conflicts with the target model.
+
+    Constraints:
+    - Do not invent ecosystem-specific release tooling without a real repo or team standard.
+    - Do not weaken verify, bypass it, or add manual release paths that skip it.
+    - Do not paste secrets into workflow YAML.
+
+    Output: summarize workflow/config files changed, verify shape, publish or deploy target, validation path, risks, gaps, and next step.
+
+    Stop rules: stop and report blocked when verify cannot be made reproducible or publish/deploy credentials, target, or branch rules cannot be confirmed safely.

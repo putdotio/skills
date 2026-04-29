@@ -1,4 +1,21 @@
 interface:
   display_name: "put.io Frontend Docs"
   short_description: "Structure frontend repo docs"
-  default_prompt: "Use $putio-frontend-docs to structure this frontend repository's top-level docs, fix stale commands or links, keep README.md user-facing, and keep CONTRIBUTING.md contributor-facing."
+  default_prompt: |
+    Use $putio-frontend-docs.
+
+    Goal: structure frontend repo documentation so user-facing, contributor-facing, security, and agent-facing guidance live in the right files and stay accurate.
+
+    Success criteria:
+    - `README.md` stays user-facing, `CONTRIBUTING.md` stays contributor-facing, and `SECURITY.md` stays private-first.
+    - Claimed commands, paths, links, badges, email addresses, templates, and symlinks are verified from the repo.
+    - Stale, duplicated, broken, or bloated guidance is removed, linked, or moved to the correct doc.
+
+    Constraints:
+    - Do not guess commands, env vars, deployment behavior, or repo-specific helper scripts.
+    - Do not leak chat-only absolute paths, editor URIs, user PII, or third-party app names into checked-in docs.
+    - Do not turn top-level docs into deep implementation manuals.
+
+    Output: list docs changed, stale material removed or rewritten, verification performed, gaps, and next step.
+
+    Stop rules: stop and ask or report blocked when required repo facts cannot be verified from files, commands, or cited sources.

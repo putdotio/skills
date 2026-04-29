@@ -1,4 +1,22 @@
 interface:
   display_name: "put.io Frontend Patterns"
   short_description: "Apply put.io frontend code patterns"
-  default_prompt: "Use $putio-frontend-patterns to apply put.io frontend code patterns (type/schema-driven, parse don't validate, state machines for bug-sensitive flows) and to seed or extend the repo's `.patterns/` folder with tailored conventions."
+  default_prompt: |
+    Use $putio-frontend-patterns.
+
+    Goal: apply put.io frontend code patterns or seed repo-local `.patterns/` guidance so future contributors can follow the repo's real conventions.
+
+    Success criteria:
+    - The repo's framework, build tool, styling, state/data libraries, test runner, agent guide, README, and relevant `.patterns/` entries are inspected before changes.
+    - Type/schema boundaries, parse-don't-validate, impossible-states-impossible, state machines, and localized error handling are applied where the repo supports them.
+    - New or changed `.patterns/` entries capture non-obvious repo choices without duplicating user/contributor docs.
+
+    Constraints:
+    - Use $putio-frontend-repos for delivery and CI shape.
+    - Use $putio-frontend-docs for top-level docs.
+    - Use $putio-sdk-dev for SDK package patterns.
+    - Do not force defaults over explicit repo-local patterns.
+
+    Output: summarize code or pattern files changed, repo conventions found, verification run, exceptions, gaps, and next step.
+
+    Stop rules: stop and ask when repo-local conventions conflict with this skill or the required stack behavior cannot be verified.
