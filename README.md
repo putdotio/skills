@@ -32,9 +32,9 @@ Use [Tessl](https://tessl.io/) to review and publish the skills in this repo to 
 Per-skill checks:
 
 ```bash
-npx tessl skill review --json skills/frontend/docs
-tessl tile lint skills/frontend/docs
-tessl tile publish --dry-run skills/frontend/docs
+./scripts/tessl.sh skill review --json skills/frontend/docs
+./scripts/tessl.sh tile lint skills/frontend/docs
+./scripts/tessl.sh tile publish --dry-run skills/frontend/docs
 ```
 
 Publishing from GitHub Actions expects a repository secret named `TESSL_TOKEN`. See [Distribution](docs/distribution.md) for the publish flow and tile naming.

@@ -3,6 +3,7 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
+tessl_cmd=("$repo_root/scripts/tessl.sh")
 
 threshold="${TESSL_THRESHOLD:-90}"
 args=()
@@ -19,7 +20,7 @@ for arg in "$@"; do
 done
 
 if [[ "$has_json" == true ]]; then
-  echo "batch review does not support --json; run npx tessl skill review --json skills/<group>/<name> per skill"
+  echo "batch review does not support --json; run ./scripts/tessl.sh skill review --json skills/<group>/<name> per skill"
   exit 1
 fi
 
@@ -32,5 +33,5 @@ args+=("$@")
 while IFS= read -r skill_md; do
   skill_dir="$(dirname "$skill_md")"
   echo "== tessl review: ${skill_dir#skills/} =="
-  npx tessl skill review "${args[@]}" "$skill_dir"
+  "${tessl_cmd[@]}" skill review "${args[@]}" "$skill_dir"
 done < <(find skills -mindepth 3 -maxdepth 3 -name SKILL.md | sort)

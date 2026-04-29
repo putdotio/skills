@@ -152,12 +152,50 @@ Imitate: `putio-cli/src/internal/auth-flow.ts` for Effect-native; `putio-ios` vi
 
 - Operation-specific errors are declared up front via specs that list known status codes and error types. See `putio-sdk-typescript/src/core/errors.ts` `definePutioOperationErrorSpec` and the per-operation usage `QueryFilesErrorSpec` in `src/domains/files.ts`. Unknown errors fall through to the base union; known errors become `PutioOperationError` with full context.
 - UI surfaces errors via *localizers*, not by switching on raw error shapes inside components. The pattern: a localizer matches an error (by status code, error-type string, or predicate) and returns `{ message, recoverySuggestion }`. See `putio-cli/src/internal/localize-error.ts` and `putio-ios/Putio/Common/API/PutioSDK+ErrorLocalizer.swift`. The same pattern applies in React.
+- React frontends follow the web app's known-known / known-unknown / unknown-unknown model:
+  - **Known known**: a feature localizer recognizes a product or API condition and returns a targeted message plus an instruction or action.
+  - **Known unknown**: the value is a recognized API error shape, but no feature-specific localizer exists. Capture a telemetry event such as `UnlocalizedAPIError`, show a generic API error, and keep a support-ready trace id in metadata.
+  - **Unknown unknown**: the value is not recognized. Capture the exception, show a generic fallback, and keep the captured error id in metadata.
 - The localizer is also the redaction chokepoint: raw `PutioApiError.body`, request URLs with query strings, and stack traces never reach UI text, telemetry, or third-party SDKs (Sentry, analytics) without going through it.
-- Error boundaries exist at the route or feature level, not wrapped around every component.
+- Error boundaries exist at the app, route, lazy-load, or feature-island level, not wrapped around every component. The goal is to keep the shell alive and isolate the broken surface, not to hide programmer errors everywhere.
 - Distinguish *expected error the user can act on* (typed, rendered inline) from *unexpected crash* (caught by the boundary, logged, generic fallback).
+- Lazy-loaded route failures are recoverable states. Match chunk-load failures and load timeouts, then offer a reload action instead of surfacing an opaque module-loading error.
+- Support fallbacks are part of the error model. Route contact-support actions through the repo's support adapter so Intercom, email, or another configured channel can be swapped without changing feature error localizers.
 - Never log or surface secrets. `putio-cli/src/internal/output-service.ts` redacts `auth_token`, `Bearer`, and query params before terminal output — model that level of paranoia.
 
-Imitate: `putio-sdk-typescript/src/core/errors.ts` for typed error model; `putio-cli/src/internal/localize-error.ts` for localizer composition.
+Preferred React shape:
+
+```tsx
+export const localizeRenameFileError = (error: unknown) =>
+  localizeError(error, [
+    {
+      error_type: "NAME_ALREADY_EXIST",
+      kind: "api_error_type",
+      localize: () => ({
+        message: "Target folder already contains a file with this name",
+        recoverySuggestion: {
+          description: "Rename one of the files and try again",
+          type: "instruction",
+        },
+      }),
+    },
+  ]);
+```
+
+Avoid:
+
+```tsx
+try {
+  await renameFile(input);
+} catch (error) {
+  Toast.Show(String(error));
+  Sentry.captureException(error);
+}
+```
+
+That leaks raw error text, duplicates telemetry policy in a leaf, and gives the user no recovery path.
+
+Imitate: `putio-sdk-typescript/src/core/errors.ts` for typed error model; `putio-cli/src/internal/localize-error.ts` for localizer composition; `putio-web/apps/app/src/core/errors/localize/index.ts`, `putio-web/apps/app/src/core/errors/components/ErrorBoundary.tsx`, `putio-web/apps/app/src/core/hocs/withLazy/errors.ts`, and `putio-web/apps/app/src/features/support/utils.ts` for the web app localizer, boundary, lazy-load, and support fallback model.
 
 ## Effect Runtime Wiring (TypeScript)
 

@@ -8,6 +8,7 @@ fi
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
+tessl_cmd=("$repo_root/scripts/tessl.sh")
 
 skill_name="$1"
 shift
@@ -19,4 +20,4 @@ if [[ ! -d "$skill_dir" ]]; then
   exit 1
 fi
 
-npx tessl skill review --optimize --yes --max-iterations 1 "$skill_dir" "$@"
+"${tessl_cmd[@]}" skill review --optimize --yes --max-iterations 1 "$skill_dir" "$@"

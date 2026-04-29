@@ -4,7 +4,7 @@ This repository stores shared agent skills for put.io development workflows.
 
 ## Setup
 
-There is no repo-local bootstrap step beyond having `npx` available and access to Tessl for review and publish workflows.
+There is no repo-local bootstrap step beyond access to Tessl for review and publish workflows. Use `./scripts/tessl.sh` so an installed `tessl` CLI is preferred and `npx tessl` is only used as a fallback.
 
 ## Working in the repo
 
@@ -18,7 +18,7 @@ There is no repo-local bootstrap step beyond having `npx` available and access t
 For focused changes, review the affected skill directly:
 
 ```bash
-npx tessl skill review --json skills/<group>/<name>
+./scripts/tessl.sh skill review --json skills/<group>/<name>
 ```
 
 For broader changes, use the repository scripts:

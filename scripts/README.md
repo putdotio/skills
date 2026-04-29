@@ -20,8 +20,8 @@ TESSL_THRESHOLD=92 ./scripts/review-skills.sh
 Batch review does not support `--json`. For structured output, run Tessl directly on one skill:
 
 ```bash
-npx tessl skill review skills/frontend/docs
-npx tessl skill review --json --threshold 90 skills/frontend/repos
+./scripts/tessl.sh skill review skills/frontend/docs
+./scripts/tessl.sh skill review --json --threshold 90 skills/frontend/repos
 ```
 
 ## Optimize one skill
@@ -38,5 +38,6 @@ This mutates files. Review the diff before committing.
 ## Notes
 
 - `review-skills.sh` is the batch entrypoint for local skill review
+- `tessl.sh` uses an installed `tessl` CLI first and falls back to `npx tessl` only when needed
 - `optimize-skills.sh` applies mutations, so run it intentionally and inspect the resulting diff
 - CI runs `./scripts/review-skills.sh` on pull requests and pushes to `main`
