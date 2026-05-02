@@ -22,7 +22,7 @@ The contract lives in a schema. Types are derived from the schema. Code never re
 
 - Schemas live next to the boundary they describe: API responses next to the API client, form values next to the form, URL params next to the route.
 - For multi-consumer repos (server + web, app + SDK, monorepo with shared types), keep schemas in a *no-runtime* package — schema definitions only, no services, no helpers. The boundary between contract and implementation stays clean.
-- Where Effect Schema is too heavy for the target runtime — see `putio-web/apps/tv-vite/src/core/api/parse.ts` for the smart-TV approach — use small typed-narrowing helpers (`getRecord`, `getString`, `getNumber`) plus per-field type guards. The bar is the same: nothing leaves the boundary as `unknown`.
+- Where Effect Schema is too heavy for the target runtime, use small typed-narrowing helpers (`getRecord`, `getString`, `getNumber`) plus per-field type guards. The bar is the same: nothing leaves the boundary as `unknown`.
 - Where native typing exists (Swift `Codable`, Kotlin serialization), use it — but still parse at the boundary. See `putio-ios/Putio/Features/MediaPlayers/VideoPlayerViewController.swift` for `Codable` + `JSONEncoder`/`JSONDecoder` against `UserDefaults`.
 
 Imitate: `putio-sdk-typescript/src/domains/*.ts` for TypeScript schema shape and naming.
@@ -37,7 +37,7 @@ External input becomes a typed value at the boundary, or it does not enter the p
 - For non-HTTP boundaries, the same rule holds. See `putio-cli/src/internal/config.ts` for env-var parsing wrapped in `Effect.try` → `CliConfigError`, and `putio-cli/src/commands/files.ts` for CLI input schemas (`FilesMkdirInputSchema`, `FilesDeleteInputSchema`) with embedded business rules.
 - Once parsed, the typed value flows inward unchanged. Inner code does not re-validate, re-coerce, or guard with `if (!data) return null`. Those guards are signals that the boundary leaked.
 
-Imitate: `putio-sdk-typescript/src/core/http.ts` (`requestJson`), `putio-cli/src/internal/config.ts` (env + file), `putio-web/apps/tv-vite/src/features/files/api/files-api.ts` (lightweight type-guard parsers).
+Imitate: `putio-sdk-typescript/src/core/http.ts` (`requestJson`) and `putio-cli/src/internal/config.ts` (env + file). For lightweight type-guard parsers, look at the API parse modules in your repo's app layer.
 
 ## Make Impossible States Impossible
 
@@ -64,7 +64,7 @@ The render tree should not need defensive checks.
   ```
 
 - Conditional response narrowing tied to query params: `putio-sdk-typescript/src/domains/account.ts` `AccountInfoResponseFor<TQuery>` adds `download_token`, `features`, `pas` only when the query asked for them. Run-time guard (`failMissingField`) backs the type-level guarantee.
-- For non-Effect TypeScript, plain discriminated unions still work: `putio-web/packages/features/src/billing/types.ts` models `AppPaymentMethod` as `{ type: "cryptocurrency"; currency: Cryptocurrency } | { type: "card" } | { type: "local-option" }`.
+- For non-Effect TypeScript, plain discriminated unions still work. Model variants like `AppPaymentMethod` as `{ type: "cryptocurrency"; currency: Cryptocurrency } | { type: "card" } | { type: "local-option" }`.
 - For Swift, enums with associated values do the same job: `putio-ios/Putio/Features/Auth/TwoFactorAuth/EnableTwoFactorSecretViewModel.swift` `enum State { case idle, loading, success(data: String), failure(error: Error) }`.
 - Exhaustive matches at every fork. `Match` from Effect, `switch` with `never` fallthrough, or pattern matches in Swift. Adding a new state should fail the type checker until every site handles it.
 - For unions whose server end can extend (status enums, error codes), include an `unknown` fallback variant at the *list-item* parser, not the response parser. A new server status should leave one row in a degraded "unknown" state, not blank out the whole list.
@@ -195,7 +195,7 @@ try {
 
 That leaks raw error text, duplicates telemetry policy in a leaf, and gives the user no recovery path.
 
-Imitate: `putio-sdk-typescript/src/core/errors.ts` for typed error model; `putio-cli/src/internal/localize-error.ts` for localizer composition; `putio-web/apps/app/src/core/errors/localize/index.ts`, `putio-web/apps/app/src/core/errors/components/ErrorBoundary.tsx`, `putio-web/apps/app/src/core/hocs/withLazy/errors.ts`, and `putio-web/apps/app/src/features/support/utils.ts` for the web app localizer, boundary, lazy-load, and support fallback model.
+Imitate: `putio-sdk-typescript/src/core/errors.ts` for the typed error model; `putio-cli/src/internal/localize-error.ts` for localizer composition. For React error-boundary + lazy-load + support-fallback patterns, study the localizer and boundary modules in your app's error-handling layer.
 
 ## Effect Runtime Wiring (TypeScript)
 
@@ -210,7 +210,7 @@ Where Effect is the runtime — and it is the put.io default for new TypeScript 
 
 Server state is a different beast from UI state. It's not yours — it's a cache of someone else's truth — so it needs invalidation, deduplication, retry, refetch-on-focus, abort-on-unmount, and stale-while-revalidate. Every one of those is a bug source when hand-rolled in `useEffect` + `useState` + `fetch`.
 
-The put.io default for HTTP-shaped server state is **TanStack Query**. `putio-web/apps/tv-vite` and `putio-web/packages/features` both use it; new code in either repo (and any new web frontend) should match.
+The put.io default for HTTP-shaped server state is **TanStack Query**. New code in put.io web frontends should match this pattern.
 
 ```ts
 // queries/transfers.ts — keys are structured, namespaced, and typed.
@@ -237,7 +237,7 @@ Rules:
 
 - **Do not hand-roll `useEffect` + `useState` + `fetch`** for server reads. You will reinvent loading, error, dedup, abort, retry, and stale-while-revalidate — and one of them will leak. Use `useQuery`.
 - **Query keys are arrays, namespaced per feature**, with the input as a structured payload, not a stringified blob. `["transfers", filter]` not `` `transfers-${JSON.stringify(filter)}` ``. Cache invalidation works on prefix.
-- **Mutations invalidate the cache, not local state**. `onSuccess: invalidateQueries({ queryKey: ["transfers"] })`. Optimistic flows use `onMutate` to set + return a snapshot, `onError` to roll it back. See `putio-web/packages/features/src/user-config/queries/config.ts`.
+- **Mutations invalidate the cache, not local state**. `onSuccess: invalidateQueries({ queryKey: ["transfers"] })`. Optimistic flows use `onMutate` to set + return a snapshot, `onError` to roll it back.
 - **TanStack Query for server reads, `useActionEffect` (or `useMutation`) for writes** — pick `useMutation` when there is a cache to invalidate; `useActionEffect` when the action is a one-off RPC with no cached read.
 - **Polling lives next to the query key**, not next to the component. `refetchInterval: 5_000` on the query, not `setInterval` in a `useEffect`.
 
@@ -294,15 +294,15 @@ A TanStack Query mutation that invalidates the relevant query keys does not need
 - Server-state and UI-state are different concerns; do not put server state into Redux/Zustand/Context "for consistency". See *Server State* above.
 - Pure render trees: a component that takes typed props and returns JSX with no side effects is the easiest thing to test, animate, and refactor.
 
-Imitate: `putio-web/apps/tv-vite/src/ui/screen.tsx` for clean composable primitives.
+Imitate: small composable primitives in your app's UI layer rather than monolithic screen templates.
 
 ## Styling
 
 put.io has multiple valid styling stacks depending on constraints:
 
 - Tailwind v4 + design tokens for new general-purpose web work.
-- Plain CSS modules + TS theme tokens where bundle size or old-browser support matters (`putio-web/apps/tv-vite/src/core/theme.ts`, `src/styles.css`).
-- Emotion + Theme-UI in legacy bundles (`putio-web/apps/app`) — keep working, do not extend.
+- Plain CSS modules + TS theme tokens where bundle size or old-browser support matters.
+- Emotion + Theme-UI in legacy bundles — keep working, do not extend.
 
 Pick the repo's existing stack. If the repo is silent, default to Tailwind v4 for new web work. Encode the choice in `.patterns/styling.md`.
 

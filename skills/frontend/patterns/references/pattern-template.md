@@ -184,4 +184,4 @@ test.each([
 - Use `Preferred` and `Avoid` snippets, not prose-only descriptions. Snippets read faster and rot slower.
 - Cite real files and real incidents. Generic advice belongs in this skill, not in `.patterns/`.
 - Update the entry in the same PR that changes the underlying pattern. A `.patterns/` file that lies is worse than no file.
-- Link out to canonical references (`putio-sdk-typescript`, `putio-cli`, `putio-web/apps/tv-vite`) when the pattern is borrowed wholesale rather than re-derived.
+- Link out to canonical references in the put.io ecosystem (e.g., `putio-sdk-typescript`, `putio-cli`, or the relevant in-repo module) when the pattern is borrowed wholesale rather than re-derived.
