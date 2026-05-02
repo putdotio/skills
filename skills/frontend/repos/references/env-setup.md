@@ -59,14 +59,16 @@ secrets:
 	OP_ACCOUNT=<account>.1password.com op whoami >/dev/null
 	OP_ACCOUNT=<account>.1password.com op inject -f -i .env.example -o .env.local
 secrets-clean:
-	rm -f .env.local
+	rm -f .env.local .env.local.* .env.local.swp
+	find . \( -name '.env.local' -o -name '.env.local.*' \) \
+	  -not -path './node_modules/*' -not -path './.git/*' -delete 2>/dev/null
 ```
 
 ```json
 // package.json
 { "scripts": {
   "secrets": "OP_ACCOUNT=<account>.1password.com op whoami >/dev/null && OP_ACCOUNT=<account>.1password.com op inject -f -i .env.example -o .env.local",
-  "secrets-clean": "rm -f .env.local"
+  "secrets-clean": "rm -f .env.local .env.local.* .env.local.swp && find . \\( -name '.env.local' -o -name '.env.local.*' \\) -not -path './node_modules/*' -not -path './.git/*' -delete 2>/dev/null || true"
 } }
 ```
 
@@ -76,12 +78,14 @@ secrets:
     OP_ACCOUNT=<account>.1password.com op whoami >/dev/null
     OP_ACCOUNT=<account>.1password.com op inject -f -i .env.example -o .env.local
 secrets-clean:
-    rm -f .env.local
+    rm -f .env.local .env.local.* .env.local.swp
+    find . \( -name '.env.local' -o -name '.env.local.*' \) \
+      -not -path './node_modules/*' -not -path './.git/*' -delete 2>/dev/null
 ```
 
 ### `secrets-clean` target
 
-Run before `git worktree remove` so stale resolved secrets don't sit on disk.
+Run before `git worktree remove`. Removes worktree-resident copies (root + editor history dirs / swap files); does not scrub system-level surfaces like Time Machine, Spotlight, or cloud-synced project paths — exclude those once at the system level if you back up or sync your worktree roots. `mode 0600` doesn't help against backups on a single-user laptop.
 
 ### `.gitignore`
 
@@ -174,6 +178,8 @@ Additional hygiene (adopt where team size supports a real PR review process):
 - Branch protection on `main`: required PR review, no force-push, no admin bypass
 - CODEOWNERS on `.github/workflows/**`, `.github/actions/**`, `.env.example`, the `secrets`/`secrets-clean` target body, and lockfiles. Without branch protection, CODEOWNERS is advisory only
 - Signed commits
+
+Honest residual risk for a small yolopush-to-main team without branch protection: a compromised committer credential = direct push to `main` = workflow runs in main context. The Environment human gate (required reviewer + Prevent self-review) still requires a second human before secrets resolve. That's the floor; everything above is depth.
 
 ### Cache scoping
 
