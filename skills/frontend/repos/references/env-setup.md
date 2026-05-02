@@ -149,6 +149,37 @@ The non-negotiable shape — protects against PR-driven secret exfiltration:
 
 For 1Password-backed secrets in CI, use `1password/load-secrets-action@<sha>` with `OP_ENV_FILE=.env.example` exporting resolved values for subsequent steps. Same `.env.example` as local; no separate CI template.
 
-## Devbox
+## Agent Contexts
 
-Set `OP_SERVICE_ACCOUNT_TOKEN` at the box level for the shared user. Verify non-interactive SSH sessions actually inherit the token before declaring the path live (`/etc/environment` is read by PAM only; systemd unit env doesn't flow to user shells).
+How agents (Claude Code, Codex, etc.) get credentials when working in a worktree. The same `op` calls and the same `secrets` target work in all three contexts — agents do not branch on context.
+
+| Context | Credential source | Setup |
+|---|---|---|
+| **Local laptop** (agent on engineer's machine) | Inherits the shell env + the engineer's unlocked 1Password CLI session via desktop integration | 1P desktop integration on, biometric unlock enabled, auto-lock set generously, app unlocked at session start. No `OP_SERVICE_ACCOUNT_TOKEN` in personal shells |
+| **Shared devbox** (SSH or remote agent on a shared VM) | `OP_SERVICE_ACCOUNT_TOKEN` set at the machine level — systemd unit, `/etc/environment`, or operator-installed shell init | Operator pre-installs the token. Verify non-interactive SSH sessions actually inherit it (`/etc/environment` is read by PAM only; systemd unit env doesn't flow to user shells) |
+| **Cloud agent** (Codex Cloud, Claude Code Cloud, etc.) | `OP_SERVICE_ACCOUNT_TOKEN` configured as a workspace secret in the agent platform | One-time setup per workspace; the VM inherits the token |
+
+### Per-worktree onboarding
+
+```bash
+git worktree add ../<repo>.<topic> <branch>
+cd ../<repo>.<topic>
+direnv allow                    # one-time per worktree
+<runner> secrets                # only when this worktree needs .env.local
+<runner> secrets-clean          # before `git worktree remove`
+```
+
+Tracked `.envrc` and `.env.example` travel with the worktree. `.env.local` is materialised per-worktree, never shared.
+
+### Harness ergonomics
+
+- Configure agent harnesses to auto-approve `direnv allow` on trusted repo paths so worktree onboarding doesn't need manual click-through
+- Have 1Password launch on login with biometric unlock so the CLI session is alive at session start
+- For unattended runs, use a devbox or Cloud agent context where the SA token is always present, not a personal laptop where the desktop session may auto-lock
+
+### Untrusted PR code
+
+Agents that review or run code from forks can be poisoned by malicious `postinstall` hooks or test code that reads env. Mitigations:
+
+- **Local laptop**: personal `op` session is unlocked; a malicious script could call `op read`. Mitigation = vault-scope discipline + per-item authentication on sensitive items
+- **Devbox / Cloud**: SA token is in env; a malicious script could exfiltrate it. **Do not run untrusted PR code on these contexts** — use a separate sandbox (different VM, no SA token) for reviewing fork PRs
