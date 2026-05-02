@@ -140,14 +140,37 @@ test ! -f .env.local && echo cleanup ok
 
 ## CI/CD
 
-The non-negotiable shape — protects against PR-driven secret exfiltration:
+The non-negotiable shape — protects against PR-driven secret exfiltration and supply-chain attacks. Each rule below is mandatory for repos that adopt this contract.
 
-- **PR verify on `pull_request`**, no `OP_SERVICE_ACCOUNT_TOKEN`. Forks run with no access to repo secrets, so PR code can't exfiltrate what isn't there
-- **Deploy / release / live-test on `push: main` or `workflow_dispatch`**, targeting a GitHub Environment with required reviewers. The job cannot read its environment secrets until a maintainer approves
-- **Never `pull_request_target` for code-running steps** — PR code with access to repo secrets is the standard exfiltration vector
-- **Pin third-party actions to SHA**, not tag
+### Trigger discipline
 
-For 1Password-backed secrets in CI, use `1password/load-secrets-action@<sha>` with `OP_ENV_FILE=.env.example` exporting resolved values for subsequent steps. Same `.env.example` as local; no separate CI template.
+- **PR verify on `pull_request`** — the workflow MUST NOT map `OP_SERVICE_ACCOUNT_TOKEN` (or any sensitive secret) into any job. `pull_request` from internal branches DOES receive `secrets.*` if the workflow references them; the protection is "the workflow author never wires it in." Fork PRs additionally have no access to repo secrets at all
+- **Deploy / release / live-test on `push: main` or `workflow_dispatch`** — these workflows reference Environment-scoped secrets, gated by required reviewers. `workflow_dispatch` is only allowed when the Environment's deployment-branch policy restricts the runnable ref to `main` or protected release branches; otherwise an internal-branch dispatcher can run PR-context code with secrets after one approval
+- **Never `pull_request_target` for code-running steps** — including `actions/checkout` against PR head, label automation that uses checkout, or composite actions that run PR-supplied scripts
+- **Never `workflow_run` triggered by a `pull_request` workflow that reads PR-supplied data** — classic exfiltration vector
+- **Reusable workflows (`uses: org/repo/.github/workflows/x.yml@ref`)** hide the trigger event in review; pin to SHA and CODEOWNER-gate them
+
+### Where secrets live
+
+- The 1Password service-account token lives ONLY in a GitHub Deployment Environment (e.g., `production`, `release`)
+- **NEVER** as a repo Actions secret — those are accessible to any workflow including `pull_request`
+- Environment must have **required reviewers** set, with **"Prevent self-review"** enabled
+
+### Workflow defaults
+
+- Top-level `permissions: {}` (deny by default); each job opts into the minimum it needs
+- Pin all third-party actions to SHA, not tag
+- For 1Password-backed secret loading, use `1password/load-secrets-action@<sha>` reading `OP_ENV_FILE=.env.example`
+
+### Repo configuration
+
+- Branch protection on `main`: required PR review (1+ approver), no force-push, no admin bypass
+- CODEOWNERS on `.github/workflows/**`, `.github/actions/**`, `.env.example`, the `secrets`/`secrets-clean` target body, and lockfiles
+- Dependabot configured for the `github-actions` ecosystem so workflow SHAs get bumped as reviewable PRs
+
+### Cache scoping
+
+Cache keys must scope per-event so PR (no-secrets) jobs cannot poison caches consumed by `push: main` (with-secrets) jobs. Include `${{ github.event_name }}` in `actions/cache` keys.
 
 ## Agent Contexts
 
@@ -155,8 +178,8 @@ How agents (Claude Code, Codex, etc.) get credentials when working in a worktree
 
 | Context | Credential source | Setup |
 |---|---|---|
-| **Local laptop** (agent on engineer's machine) | Inherits the shell env + the engineer's unlocked 1Password CLI session via desktop integration | 1P desktop integration on, biometric unlock enabled, auto-lock set generously, app unlocked at session start. No `OP_SERVICE_ACCOUNT_TOKEN` in personal shells |
-| **Shared devbox** (SSH or remote agent on a shared VM) | `OP_SERVICE_ACCOUNT_TOKEN` set at the machine level — systemd unit, `/etc/environment`, or operator-installed shell init | Operator pre-installs the token. Verify non-interactive SSH sessions actually inherit it (`/etc/environment` is read by PAM only; systemd unit env doesn't flow to user shells) |
+| **Local laptop** (agent on engineer's machine) | Inherits the shell env + the engineer's unlocked 1Password CLI session via desktop integration | 1P desktop integration on, biometric unlock enabled, auto-lock ≤ 1 hour, app unlocked at session start. No `OP_SERVICE_ACCOUNT_TOKEN` in personal shells |
+| **Shared devbox** (SSH or remote agent on a shared VM) | `OP_SERVICE_ACCOUNT_TOKEN` exported into the shared user's non-interactive shell. Practical path: store the token in `/etc/<org>/op.env` (mode `0600`, owned by the shared user) and source it from `/etc/profile.d/<org>-op.sh` or the user's `~/.zshenv` so SSH sessions inherit it. systemd `EnvironmentFile=` only reaches the unit that declares it; `/etc/environment` is world-readable | Operator pre-installs. Verify with `ssh user@host 'env | grep OP_SERVICE_ACCOUNT_TOKEN'` |
 | **Cloud agent** (Codex Cloud, Claude Code Cloud, etc.) | `OP_SERVICE_ACCOUNT_TOKEN` configured as a workspace secret in the agent platform | One-time setup per workspace; the VM inherits the token |
 
 ### Per-worktree onboarding
@@ -177,9 +200,9 @@ Tracked `.envrc` and `.env.example` travel with the worktree. `.env.local` is ma
 - Have 1Password launch on login with biometric unlock so the CLI session is alive at session start
 - For unattended runs, use a devbox or Cloud agent context where the SA token is always present, not a personal laptop where the desktop session may auto-lock
 
-### Untrusted PR code
+### Untrusted code
 
-Agents that review or run code from forks can be poisoned by malicious `postinstall` hooks or test code that reads env. Mitigations:
+The line is **"anything you did not author personally"**, not "anything from a fork." Compromised internal accounts and malicious dependencies are real attack vectors. Mitigations per context:
 
-- **Local laptop**: personal `op` session is unlocked; a malicious script could call `op read`. Mitigation = vault-scope discipline + per-item authentication on sensitive items
-- **Devbox / Cloud**: SA token is in env; a malicious script could exfiltrate it. **Do not run untrusted PR code on these contexts** — use a separate sandbox (different VM, no SA token) for reviewing fork PRs
+- **Local laptop**: personal `op` session is unlocked; a malicious script could call `op read`. Mitigation = vault-scope discipline + per-item authentication on sensitive items + auto-lock ≤ 1 hour
+- **Devbox / Cloud**: SA token is in env; a malicious script could exfiltrate it. **Do not run untrusted code (including internal-PR code from someone you don't personally trust) on these contexts** — use a separate sandbox for review
