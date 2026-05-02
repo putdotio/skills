@@ -1,0 +1,26 @@
+# SDK Language Notes
+
+Use the section that matches the SDK repo you are changing.
+
+## TypeScript
+
+- Stay Effect-first when the repo already uses Effect.
+- Keep `Schema` at boundaries for request, response, config, and error shapes.
+- Keep Promise and Effect clients aligned when both are public.
+- Prefer discriminated unions, explicit exports, and parameter-aware return types over loose option bags.
+- Do not weaken the surface with unsafe casts or ignored type failures unless explicitly approved.
+
+## Swift
+
+- Prefer `async throws` and native Swift value types.
+- Keep the package surface open-source-safe and preserve package-manager install paths.
+- Verify the example app when auth or integration behavior changes.
+- Avoid callback-first APIs, raw JSON public results, and JavaScript-style compatibility layers as long-term surfaces.
+
+## Kotlin
+
+- Prefer coroutine-first APIs.
+- Keep models serialization-friendly.
+- Prefer explicit error contracts over generic failures.
+- Stay close to the TypeScript contract shape without forcing full endpoint parity.
+- Preserve forward-compatible backend values when the server can evolve faster than the client.

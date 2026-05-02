@@ -7,7 +7,9 @@ description: Apply put.io frontend code patterns and seed repo-local `.patterns/
 
 Use this skill when writing or reviewing UI/frontend code in a put.io frontend repository, or when seeding the repo's `.patterns/` folder.
 
-The skill carries the put.io-wide code defaults — type/schema-driven boundaries, parse-don't-validate, impossible-states-impossible, state machines for bug-sensitive flows, and localized error handling with bounded crash surfaces. The `.patterns/` folder is the per-repo extension: where a repository pins its own concrete choices (which schema lib, which state-machine lib, which styling stack) so future contributors and agents do not re-litigate them on every PR.
+Bundled references: `frontend-defaults.md` and `pattern-template.md`.
+
+Use this skill for put.io-wide code defaults and `.patterns/` for repo-specific choices such as schema, state-machine, styling, and testing libraries.
 
 ## Quick Rules
 
@@ -38,7 +40,7 @@ Use `.patterns/` at the repo root.
 - Keep each file under ~300 lines so it loads on demand without dominating context.
 - Link `.patterns/` from the repo's `AGENTS.md` so future contributors and agents discover it automatically.
 
-Do not put `.patterns/` under `docs/`. `docs/` is the user and contributor surface (see `putio-frontend-docs`); `.patterns/` is the code-convention surface. Keeping them separated by audience prevents drift in both directions.
+Do not put `.patterns/` under `docs/`; keep user/contributor docs and code-convention docs separated.
 
 ## When to add a pattern entry
 

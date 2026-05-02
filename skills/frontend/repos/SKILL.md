@@ -1,22 +1,49 @@
 ---
 name: putio-frontend-repos
-description: Structure frontend repositories around a shared verify and delivery model. Use when standardizing package repos, app repos, or SDK repos across TypeScript, Swift, Kotlin, or similar ecosystems; setting up CI guardrails; defining a repo-local verify command; or enabling continuous publish/deploy flows on main after verify passes.
+description: Structure put.io frontend-owned repositories around repo-local verify and delivery contracts. Use when standardizing package repos, app repos, or SDK repos across TypeScript, Swift, Kotlin, or similar ecosystems; defining the verify command CI should call; aligning publish/deploy flows on main after verify passes; or fixing repo shape that blocks repeatable release or deployment work. Skip generic CI/CD design that does not depend on repo structure.
 ---
 
 # Frontend Repos
 
 Use one delivery rule: every merge to `main` should already be publishable or deployable.
 
+Bundled references: `delivery-model.md`, `typescript.md`, `applications.md`, and `1password-direnv.md`.
+This skill owns repo shape and canonical commands, not host-specific deployment architecture.
+
 ## Workflow
 
-1. Inspect the repo and capture a short summary before editing: repo kind, verify entrypoint, delivery target, versioning tool, and template gaps. Check files like `package.json`, `Makefile`, `.github/workflows/*`, `.github/pull_request_template.md`, `.github/ISSUE_TEMPLATE/*`, and release config.
+1. Run the inspection commands below and capture the summary before editing.
 2. Read [references/delivery-model.md](references/delivery-model.md).
 3. If the repo is TypeScript, read [references/typescript.md](references/typescript.md).
 4. If the repo is an application, read [references/applications.md](references/applications.md).
-5. Prefer one repo-local `verify` entrypoint that CI calls directly.
-6. Run the repo-local `verify` command locally before changing delivery automation. If it fails, fix that command first and rerun it until it passes.
-7. If the repo uses semantic-release or release commits, configure the plugins and commit identity explicitly using the delivery-model reference.
-8. Verify the publish or deploy path only after the repo-local `verify` command is stable and reproducible.
+5. If the repo uses 1Password-backed local, live-test, build, signing, or deploy workflows, read [references/1password-direnv.md](references/1password-direnv.md) and standardize the local env shape.
+6. Prefer one repo-local `verify` entrypoint that CI calls directly.
+7. Run the repo-local `verify` command locally before changing delivery automation. If it fails, fix that command first and rerun it until it passes.
+8. Configure semantic-release plugins and commit identity per the delivery-model reference when release commits are in scope.
+9. Verify the publish or deploy path only after the repo-local `verify` command is stable and reproducible.
+10. After publish or deploy changes, run the repo-documented artifact or app smoke check. If none exists, record that as a repo gap.
+
+Summary shape:
+
+```markdown
+- Repo kind:
+- Verify entrypoint:
+- Delivery target:
+- Versioning/release:
+- 1Password/env needs:
+- Template gaps:
+```
+
+Useful inspection commands:
+
+```bash
+rg -n '"verify"|"release"|"build"|semantic-release|deploy|publish|OP_SERVICE_ACCOUNT_TOKEN|PUTIO_1PASSWORD|op://' \
+  package.json Makefile .github README.md CONTRIBUTING.md SECURITY.md docs .env.example scripts tooling apps 2>/dev/null
+
+test -f package.json && jq '.scripts // {}' package.json
+test -f Makefile && rg -n '^[a-zA-Z0-9_.:-]+:' Makefile
+test -d .github && find .github -maxdepth 3 -type f | sort
+```
 
 Concrete example:
 
@@ -50,9 +77,7 @@ App-shaped example:
 
 ## Guardrails
 
-- Keep `VERIFY` as the source of truth for all guardrails.
-- Run delivery only on `main`, and only after `VERIFY` passes.
+- Keep the repo-local `verify` command as the source of truth for guardrails.
 - Prefer GitHub Actions for orchestration and repo-local commands as the canonical home for build, test, and deliver logic.
-- Do not invent ecosystem-specific release tooling without a real repo or team standard behind it.
-- Keep package repos continuously publishable and app repos continuously deployable from `main`.
+- Do not invent release tooling without a real repo or team standard behind it.
 - GitHub-facing repos should carry a useful pull request template and issue templates when the review or triage flow benefits from them.
