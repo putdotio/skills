@@ -164,9 +164,16 @@ The non-negotiable shape — protects against PR-driven secret exfiltration and 
 
 ### Repo configuration
 
-- Branch protection on `main`: required PR review (1+ approver), no force-push, no admin bypass
-- CODEOWNERS on `.github/workflows/**`, `.github/actions/**`, `.env.example`, the `secrets`/`secrets-clean` target body, and lockfiles
-- Dependabot configured for the `github-actions` ecosystem so workflow SHAs get bumped as reviewable PRs
+Load-bearing (mandatory):
+
+- Deployment Environment with required reviewers and Prevent self-review on every workflow that maps a sensitive secret. The only mechanical gate between a compromised committer and a deploy
+- Dependabot configured for the `github-actions` ecosystem so pinned workflow SHAs get bumped as reviewable PRs
+
+Additional hygiene (adopt where team size supports a real PR review process):
+
+- Branch protection on `main`: required PR review, no force-push, no admin bypass
+- CODEOWNERS on `.github/workflows/**`, `.github/actions/**`, `.env.example`, the `secrets`/`secrets-clean` target body, and lockfiles. Without branch protection, CODEOWNERS is advisory only
+- Signed commits
 
 ### Cache scoping
 
