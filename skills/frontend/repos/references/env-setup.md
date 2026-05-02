@@ -1,18 +1,22 @@
 # Env Setup
 
-Use this reference when a put.io frontend-owned repo has 1Password-backed local, live-test, build, signing, or deploy workflows. Defines the repo-side mechanics — detect, scaffold, verify — for the contract in `../putio-frontend-handbook/docs/shared-secrets.md`.
+Use this reference when a put.io frontend-owned repo has 1Password-backed local, live-test, build, signing, or deploy workflows. Defines the repo-side mechanics — detect, scaffold, verify — for the contract in `../putio-frontend-handbook/docs/shared-secrets.md` (assumes the standard peer layout under `~/projects/putdotio/`). The handbook is the canonical source for the recipe and the public-repo policy; this reference owns how to apply them.
+
+**Out of scope**: repos with native non-task-runner build systems (e.g. Xcode + Fastlane), repos that *hold* signing material consumed by tools like `match`, and repos whose `.env`/`.env.example` carry plain device or runtime credentials rather than 1Password references. Those follow their repo-local setup. See the handbook §Scope for the current carve-out list.
 
 ## Detect
 
 ```bash
 rg -n 'op (run|inject|read|item|whoami|signin)|OP_SERVICE_ACCOUNT_TOKEN|op://|load-secrets-action' \
-  AGENTS.md README.md CONTRIBUTING.md SECURITY.md docs .github Makefile package.json build.gradle.kts Package.swift .env.example .env.template scripts tooling apps Tests src 2>/dev/null
+  AGENTS.md README.md CONTRIBUTING.md SECURITY.md docs .github Makefile package.json build.gradle.kts Package.swift .env.example scripts tooling apps Tests src 2>/dev/null
 
-test -f .env.template && cat .env.template
+test -f .env.example && cat .env.example
 test -f .envrc && cat .envrc
 ```
 
-Repos with no real 1Password hits and no `.env.template` need none of the below — leave them alone.
+Repos with no real 1Password hits and no `.env.example` need none of the below — leave them alone.
+
+If `.envrc` already exists with content beyond the one-liner (e.g. a multi-line `dotenv_if_regular_file_or_fifo_exists` block, or `use mise`/runtime pins/PATH manipulation), confirm with the operator before overwriting — those carry meaning. If `.env.example` already exists with bare-key placeholders for non-1Password values (e.g. local device creds), preserve those entries when migrating to `op://` references — do not silently replace mixed content.
 
 ## Standard Shape
 
@@ -26,7 +30,7 @@ dotenv_if_exists .env.local
 
 Identical across public and private repos. Travels with `git worktree add`. Approved per worktree with `direnv allow`. With no `.env.local` present it loads nothing, staying safe in public repos.
 
-### Tracked `.env.template` (bare `op://` refs)
+### Tracked `.env.example` (bare `op://` refs)
 
 ```
 PUTIO_API_KEY=op://<vault>/<item>/<field>
@@ -40,7 +44,7 @@ Vault and item names are operational metadata — commit as-is. The same templat
 Body is identical across runners:
 
 ```bash
-OP_ACCOUNT=putdotio.1password.com op inject -f -i .env.template -o .env.local
+OP_ACCOUNT=putdotio.1password.com op inject -f -i .env.example -o .env.local
 ```
 
 Bindings:
@@ -49,18 +53,18 @@ Bindings:
 # Makefile
 .PHONY: secrets
 secrets:
-	OP_ACCOUNT=putdotio.1password.com op inject -f -i .env.template -o .env.local
+	OP_ACCOUNT=putdotio.1password.com op inject -f -i .env.example -o .env.local
 ```
 
 ```json
 // package.json
-{ "scripts": { "secrets": "OP_ACCOUNT=putdotio.1password.com op inject -f -i .env.template -o .env.local" } }
+{ "scripts": { "secrets": "OP_ACCOUNT=putdotio.1password.com op inject -f -i .env.example -o .env.local" } }
 ```
 
 ```just
 # justfile
 secrets:
-    OP_ACCOUNT=putdotio.1password.com op inject -f -i .env.template -o .env.local
+    OP_ACCOUNT=putdotio.1password.com op inject -f -i .env.example -o .env.local
 ```
 
 ### `.gitignore`
@@ -69,9 +73,11 @@ secrets:
 .env
 .env.*
 !.env.example
-!.env.template
+!.env.example
 .direnv/
 ```
+
+The `!.env.example` exception is **required** — without it, a blanket `.env.*` rule silently un-tracks the template and the next `git add` skips it. Verify with `git check-ignore -v .env.example` (it must report no match).
 
 ## Targets That Need Secrets
 
@@ -83,10 +89,10 @@ live-test: secrets
 ```
 
 ```bash
-OP_ACCOUNT=putdotio.1password.com op run --env-file=.env.template -- pnpm test:live
+OP_ACCOUNT=putdotio.1password.com op run --env-file=.env.example -- pnpm test:live
 ```
 
-Do not auto-bootstrap from build/test/lint/typecheck, in CI or in agent flows.
+Do not auto-bootstrap from build/test/lint/typecheck, in CI or in agent flows. Do not wire `secrets` into `prepare`, `postinstall`, or `prebuild` lifecycle hooks — those run on `pnpm install` and would force every contributor (including those without 1Password) through the bootstrap.
 
 ## Verify
 
@@ -95,9 +101,9 @@ Do not auto-bootstrap from build/test/lint/typecheck, in CI or in agent flows.
 test "$(cat .envrc)" = "dotenv_if_exists .env.local"
 bash -n .envrc
 
-# .env.local gitignored, .env.template tracked
+# .env.local gitignored, .env.example tracked
 git check-ignore -v .env.local
-git check-ignore -v .env.template && echo "WRONG: .env.template must be tracked" || true
+git check-ignore -v .env.example && echo "WRONG: .env.example must be tracked" || true
 
 # direnv loads cleanly with no .env.local
 direnv allow && direnv exec . sh -c 'echo direnv ok'
@@ -108,7 +114,9 @@ op whoami --account=putdotio.1password.com
 # bootstrap produces a 0600 file with no unresolved op:// refs
 <repo's secrets target>
 test -f .env.local
-stat -f '%Mp%Lp' .env.local | grep -q '600' && echo mode ok
+# portable mode check (BSD: stat -f, GNU: stat -c)
+mode=$(stat -f '%Mp%Lp' .env.local 2>/dev/null || stat -c '%a' .env.local)
+test "$mode" = "600" && echo mode ok || echo "WRONG: mode=$mode"
 grep -q 'op://' .env.local && echo "WRONG: unresolved op:// in .env.local" || echo refs ok
 ```
 
