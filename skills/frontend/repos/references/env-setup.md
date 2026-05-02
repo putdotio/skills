@@ -41,11 +41,11 @@ Vault and item names go literally into the file. They are operational metadata, 
 
 ### `secrets` target in the repo's native task runner
 
-Body is identical across runners:
+Body is identical across runners — `OP_ACCOUNT` is pinned **inside** the target so the recipe is hermetic regardless of the engineer's shell env, and the `op inject` line cannot resolve against an engineer's personal 1Password account by accident:
 
 ```bash
-op whoami --account=<account>.1password.com >/dev/null
-op inject -f -i .env.example -o .env.local
+OP_ACCOUNT=<account>.1password.com op whoami >/dev/null
+OP_ACCOUNT=<account>.1password.com op inject -f -i .env.example -o .env.local
 ```
 
 The `op whoami` pre-flight fails fast with a clear message if 1Password is locked or unavailable. `op inject -f` overwrites without prompting. Output mode is 0600 by default; no separate `chmod` needed. Same recipe runs locally (personal `op`), on devbox (`OP_SERVICE_ACCOUNT_TOKEN` exported), and in CI.
@@ -56,8 +56,8 @@ Bindings:
 # Makefile
 .PHONY: secrets secrets-clean
 secrets:
-	op whoami --account=<account>.1password.com >/dev/null
-	op inject -f -i .env.example -o .env.local
+	OP_ACCOUNT=<account>.1password.com op whoami >/dev/null
+	OP_ACCOUNT=<account>.1password.com op inject -f -i .env.example -o .env.local
 secrets-clean:
 	rm -f .env.local
 ```
@@ -65,7 +65,7 @@ secrets-clean:
 ```json
 // package.json
 { "scripts": {
-  "secrets": "op whoami --account=<account>.1password.com >/dev/null && op inject -f -i .env.example -o .env.local",
+  "secrets": "OP_ACCOUNT=<account>.1password.com op whoami >/dev/null && OP_ACCOUNT=<account>.1password.com op inject -f -i .env.example -o .env.local",
   "secrets-clean": "rm -f .env.local"
 } }
 ```
@@ -73,8 +73,8 @@ secrets-clean:
 ```just
 # justfile
 secrets:
-    op whoami --account=<account>.1password.com >/dev/null
-    op inject -f -i .env.example -o .env.local
+    OP_ACCOUNT=<account>.1password.com op whoami >/dev/null
+    OP_ACCOUNT=<account>.1password.com op inject -f -i .env.example -o .env.local
 secrets-clean:
     rm -f .env.local
 ```
@@ -160,7 +160,7 @@ The non-negotiable shape — protects against PR-driven secret exfiltration and 
 
 - Top-level `permissions: {}` (deny by default); each job opts into the minimum it needs
 - Pin all third-party actions to SHA, not tag
-- For 1Password-backed secret loading, use `1password/load-secrets-action@<sha>` reading `OP_ENV_FILE=.env.example`
+- For 1Password-backed secret loading, use `1Password/load-secrets-action@<sha>` reading `OP_ENV_FILE=.env.example`
 
 ### Repo configuration
 
