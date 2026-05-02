@@ -185,7 +185,7 @@ How agents (Claude Code, Codex, etc.) get credentials when working in a worktree
 
 | Context | Credential source | Setup |
 |---|---|---|
-| **Local laptop** (agent on engineer's machine) | Inherits the shell env + the engineer's unlocked 1Password CLI session via desktop integration | 1P desktop integration on, biometric unlock enabled, auto-lock ≤ 1 hour, app unlocked at session start. No `OP_SERVICE_ACCOUNT_TOKEN` in personal shells |
+| **Local laptop** (agent on engineer's machine) | Inherits the shell env + the engineer's unlocked 1Password CLI session via desktop integration | 1P desktop integration on, biometric unlock enabled, auto-lock set to engineer preference (avoid "Never until I quit"), app unlocked at session start. No `OP_SERVICE_ACCOUNT_TOKEN` in personal shells |
 | **Shared devbox** (SSH or remote agent on a shared VM) | `OP_SERVICE_ACCOUNT_TOKEN` exported into the shared user's non-interactive shell. Practical path: store the token in `/etc/<org>/op.env` (mode `0600`, owned by the shared user) and source it from `/etc/profile.d/<org>-op.sh` or the user's `~/.zshenv` so SSH sessions inherit it. systemd `EnvironmentFile=` only reaches the unit that declares it; `/etc/environment` is world-readable | Operator pre-installs. Verify with `ssh user@host 'env | grep OP_SERVICE_ACCOUNT_TOKEN'` |
 | **Cloud agent** (Codex Cloud, Claude Code Cloud, etc.) | `OP_SERVICE_ACCOUNT_TOKEN` configured as a workspace secret in the agent platform | One-time setup per workspace; the VM inherits the token |
 
@@ -211,5 +211,5 @@ Tracked `.envrc` and `.env.example` travel with the worktree. `.env.local` is ma
 
 The line is **"anything you did not author personally"**, not "anything from a fork." Compromised internal accounts and malicious dependencies are real attack vectors. Mitigations per context:
 
-- **Local laptop**: personal `op` session is unlocked; a malicious script could call `op read`. Mitigation = vault-scope discipline + per-item authentication on sensitive items + auto-lock ≤ 1 hour
+- **Local laptop**: personal `op` session is unlocked; a malicious script could call `op read`. Mitigation = vault-scope discipline + per-item authentication on sensitive items + auto-lock to bound the window
 - **Devbox / Cloud**: SA token is in env; a malicious script could exfiltrate it. **Do not run untrusted code (including internal-PR code from someone you don't personally trust) on these contexts** — use a separate sandbox for review
