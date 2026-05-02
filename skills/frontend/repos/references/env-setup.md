@@ -1,8 +1,8 @@
 # Env Setup
 
-Use this reference when a put.io frontend-owned repo has 1Password-backed local, live-test, build, signing, or deploy workflows. Defines the repo-side mechanics — detect, scaffold, verify — for the contract in `../putio-frontend-handbook/docs/shared-secrets.md` (assumes the standard peer layout under `~/projects/putdotio/`). The handbook is the canonical source for the recipe and the public-repo policy; this reference owns how to apply them.
+Use this reference when a put.io frontend-owned repo has 1Password-backed local, live-test, build, signing, or deploy workflows. Defines the repo-side mechanics — detect, scaffold, verify — and is self-contained: external contributors and future agents can apply it without access to internal operator docs.
 
-**Out of scope**: repos with native non-task-runner build systems (e.g. Xcode + Fastlane), repos that *hold* signing material consumed by tools like `match`, and repos whose `.env`/`.env.example` carry plain device or runtime credentials rather than 1Password references. Those follow their repo-local setup. See the handbook §Scope for the current carve-out list.
+**Out of scope**: repos with native non-task-runner build systems (e.g. Xcode + Fastlane), repos that *hold* signing material consumed by tools like `match`, and repos whose `.env`/`.env.example` carry plain device or runtime credentials rather than 1Password references. Those follow their repo-local setup; operators maintain the current carve-out list privately.
 
 ## Detect
 
