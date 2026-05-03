@@ -154,6 +154,43 @@ Additional hygiene (adopt where team size supports a real PR review process):
 
 Residual risk for a yolopush-to-main team: a compromised committer credential = direct push = workflow runs in main context. The Environment human gate is the floor.
 
+### Setup recipe
+
+One-time per repo:
+
+```bash
+# Create the Deployment Environment (idempotent)
+gh api -X PUT repos/<owner>/<repo>/environments/release
+
+# Add the SA token as an Environment secret
+gh secret set OP_SERVICE_ACCOUNT_TOKEN --env release --repo <owner>/<repo>
+
+# Configure required reviewers, Prevent self-review, and deployment-branch policy
+# in Settings → Environments → release (UI; gh api supports it but the body shape is awkward)
+```
+
+Workflow YAML for a deploy / release / live-test job:
+
+```yaml
+jobs:
+  deploy:
+    environment: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@<sha>
+      - uses: 1Password/load-secrets-action@<sha>
+        with:
+          export-env: true
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          OP_ENV_FILE: .env.example
+      - run: pnpm deploy
+```
+
+Migrating an existing repo Actions secret to the Environment: add the secret to the Environment first, switch the workflow's job to declare `environment:`, then delete the repo-level secret.
+
 ### Cache scoping
 
 Cache keys include `${{ github.event_name }}` so PR (no-secrets) jobs cannot poison caches consumed by `push: main` (with-secrets) jobs.
