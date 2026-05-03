@@ -11,24 +11,15 @@ rg -n 'op (run|inject|read|item|whoami|signin)|OP_SERVICE_ACCOUNT_TOKEN|op://|lo
   AGENTS.md README.md CONTRIBUTING.md SECURITY.md docs .github Makefile package.json build.gradle.kts Package.swift .env.example scripts tooling apps Tests src 2>/dev/null
 
 test -f .env.example && cat .env.example
-test -f .envrc && cat .envrc
 ```
 
 Repos with no real 1Password hits and no `.env.example` need none of the below — leave them alone.
 
-If `.envrc` already exists with content beyond the one-liner (a multi-line `dotenv_if_regular_file_or_fifo_exists` block, or `use mise`/runtime pins/PATH manipulation), confirm with the operator before overwriting — those carry meaning. If `.env.example` already exists with bare-key placeholders for non-1Password values (e.g. local device creds), preserve those entries when migrating to `op://` references; do not silently replace mixed content.
+If `.env.example` already exists with bare-key placeholders for non-1Password values (e.g. local device creds), preserve those entries when migrating to `op://` references; the operator owns mixed-content templates and must approve replacement.
 
 ## Standard Shape
 
-A secrets-using repo carries five artefacts.
-
-### Tracked `.envrc` (one line)
-
-```bash
-dotenv_if_exists .env.local
-```
-
-Identical across public and private repos. Travels with `git worktree add`. Approved per worktree with `direnv allow`. Loads nothing if `.env.local` is missing — safe in public repos.
+A secrets-using repo carries four artefacts. The `secrets` target runs once per worktree to materialize `.env.local` from the operator's 1Password session — that is the only `op` invocation in the routine flow. Frameworks (Vite, Next.js) auto-read `.env.local`; shell-script flows that need secrets in-process wrap in `op run --env-file=.env.example -- <cmd>`.
 
 ### Tracked `.env.example` (literal `op://` references)
 
@@ -41,14 +32,14 @@ Vault and item names go literally into the file. They are operational metadata, 
 
 ### `secrets` target in the repo's native task runner
 
-Body is identical across runners — `OP_ACCOUNT` is pinned **inside** the target so the recipe is hermetic regardless of the engineer's shell env, and the `op inject` line cannot resolve against an engineer's personal 1Password account by accident:
+Body is identical across runners. `OP_ACCOUNT` is pinned **inside** the target so the recipe is hermetic across personal `op`, devbox SA token, and CI:
 
 ```bash
 OP_ACCOUNT=<account>.1password.com op whoami >/dev/null
 OP_ACCOUNT=<account>.1password.com op inject -f -i .env.example -o .env.local
 ```
 
-The `op whoami` pre-flight fails fast with a clear message if 1Password is locked or unavailable. `op inject -f` overwrites without prompting. Output mode is 0600 by default; no separate `chmod` needed. Same recipe runs locally (personal `op`), on devbox (`OP_SERVICE_ACCOUNT_TOKEN` exported), and in CI.
+`op whoami` pre-flight fails fast if 1Password is locked. `op inject -f` overwrites without prompting; output is mode 0600.
 
 Bindings:
 
@@ -85,7 +76,7 @@ secrets-clean:
 
 ### `secrets-clean` target
 
-Run before `git worktree remove`. Removes worktree-resident copies (root + editor history dirs / swap files); does not scrub system-level surfaces like Time Machine, Spotlight, or cloud-synced project paths — exclude those once at the system level if you back up or sync your worktree roots. `mode 0600` doesn't help against backups on a single-user laptop.
+Run before `git worktree remove`. Scrubs root + editor history + swap files. For system-level backup paths (Time Machine, iCloud/Dropbox), exclude worktree roots once at the system level.
 
 ### `.gitignore`
 
@@ -93,36 +84,32 @@ Run before `git worktree remove`. Removes worktree-resident copies (root + edito
 .env
 .env.*
 !.env.example
-.direnv/
 ```
 
 The `!.env.example` exception is **required** — without it, the blanket `.env.*` rule silently un-tracks the template. Verify with `git check-ignore -v .env.example` (it must report no match).
 
 ## Targets That Need Secrets
 
-Default verify (`build`, `test`, `lint`, `typecheck`) must work without secrets. Targets that genuinely need them either declare `secrets` as a task dependency, or wrap the command in `op run` for one-shots that should not persist secrets to disk:
+Default verify (`build`, `test`, `lint`, `typecheck`) runs without secrets. Targets that need them declare `secrets` as a task dependency:
 
 ```makefile
 live-test: secrets
 	pnpm test:live
 ```
 
+For no-disk-persist flows (CI live-test, heightened-security one-shots), wrap in `op run` instead:
+
 ```bash
 op run --env-file=.env.example -- pnpm test:live
 ```
 
-Do not auto-bootstrap from build/test/lint/typecheck, in CI or in agent flows. Do not wire `secrets` into `prepare`, `postinstall`, or `prebuild` lifecycle hooks — those run on `pnpm install` and would force every contributor (including those without 1Password) through the bootstrap.
+Keep `secrets` out of `prepare`, `postinstall`, and `prebuild` hooks — those run on `pnpm install` and would route every contributor through the 1Password bootstrap.
 
 ## Verify
 
 ```bash
-test "$(cat .envrc)" = "dotenv_if_exists .env.local"
-bash -n .envrc
-
 git check-ignore -v .env.local
 git check-ignore -v .env.example && echo "WRONG: .env.example must be tracked" || true
-
-direnv allow && direnv exec . sh -c 'echo direnv ok'
 
 op whoami --account=<account>.1password.com >/dev/null
 
@@ -144,78 +131,75 @@ test ! -f .env.local && echo cleanup ok
 
 ## CI/CD
 
-The non-negotiable shape — protects against PR-driven secret exfiltration and supply-chain attacks. Each rule below is mandatory for repos that adopt this contract.
+Mandatory shape against PR-driven exfiltration and supply-chain attacks.
 
 ### Trigger discipline
 
-- **PR verify on `pull_request`** — the workflow MUST NOT map `OP_SERVICE_ACCOUNT_TOKEN` (or any sensitive secret) into any job. `pull_request` from internal branches DOES receive `secrets.*` if the workflow references them; the protection is "the workflow author never wires it in." Fork PRs additionally have no access to repo secrets at all
-- **Deploy / release / live-test on `push: main` or `workflow_dispatch`** — these workflows reference Environment-scoped secrets, gated by required reviewers. `workflow_dispatch` is only allowed when the Environment's deployment-branch policy restricts the runnable ref to `main` or protected release branches; otherwise an internal-branch dispatcher can run PR-context code with secrets after one approval
-- **Never `pull_request_target` for code-running steps** — including `actions/checkout` against PR head, label automation that uses checkout, or composite actions that run PR-supplied scripts
-- **Never `workflow_run` triggered by a `pull_request` workflow that reads PR-supplied data** — classic exfiltration vector
-- **Reusable workflows (`uses: org/repo/.github/workflows/x.yml@ref`)** hide the trigger event in review; pin to SHA and CODEOWNER-gate them
+- **PR verify on `pull_request`** MUST NOT map `OP_SERVICE_ACCOUNT_TOKEN` (or any sensitive secret) into any job. `pull_request` from internal branches DOES receive `secrets.*` when referenced; the gate is "workflow author never wires it in"
+- **Deploy / release / live-test on `push: main` or `workflow_dispatch`** reference Environment-scoped secrets gated by required reviewers. `workflow_dispatch` is only allowed when the Environment's deployment-branch policy restricts the runnable ref to `main` or protected release branches
+- **Never `pull_request_target` for code-running steps** (checkout PR head, label automation with checkout, composite actions running PR-supplied scripts)
+- **Never `workflow_run` triggered by a `pull_request` workflow that reads PR data** — classic exfiltration vector
+- Pin reusable workflows to SHA and CODEOWNER-gate
 
 ### Where secrets live
 
-- The 1Password service-account token lives ONLY in a GitHub Deployment Environment (e.g., `production`, `release`)
-- **NEVER** as a repo Actions secret — those are accessible to any workflow including `pull_request`
-- Environment must have **required reviewers** set, with **"Prevent self-review"** enabled
+- The 1Password service-account token lives ONLY in a GitHub Deployment Environment — never as a repo Actions secret
+- Environment has **required reviewers** with **"Prevent self-review"** enabled
 
 ### Workflow defaults
 
 - Top-level `permissions: {}` (deny by default); each job opts into the minimum it needs
-- Pin all third-party actions to SHA, not tag
-- For 1Password-backed secret loading, use `1Password/load-secrets-action@<sha>` reading `OP_ENV_FILE=.env.example`
+- Third-party actions pinned to SHA
+- 1Password-backed loading uses `1Password/load-secrets-action@<sha>` reading `OP_ENV_FILE=.env.example`
 
 ### Repo configuration
 
-Load-bearing (mandatory):
+Load-bearing:
 
-- Deployment Environment with required reviewers and Prevent self-review on every workflow that maps a sensitive secret. The only mechanical gate between a compromised committer and a deploy
-- Dependabot configured for the `github-actions` ecosystem so pinned workflow SHAs get bumped as reviewable PRs
+- **Deployment Environment with required reviewers + Prevent self-review** on every workflow mapping a sensitive secret — the mechanical gate between a compromised committer and a deploy
+- **Dependabot** for the `github-actions` ecosystem so pinned SHAs get reviewable bumps
 
 Additional hygiene (adopt where team size supports a real PR review process):
 
 - Branch protection on `main`: required PR review, no force-push, no admin bypass
-- CODEOWNERS on `.github/workflows/**`, `.github/actions/**`, `.env.example`, the `secrets`/`secrets-clean` target body, and lockfiles. Without branch protection, CODEOWNERS is advisory only
+- CODEOWNERS on `.github/workflows/**`, `.github/actions/**`, `.env.example`, the `secrets`/`secrets-clean` target body, and lockfiles
 - Signed commits
 
-Honest residual risk for a small yolopush-to-main team without branch protection: a compromised committer credential = direct push to `main` = workflow runs in main context. The Environment human gate (required reviewer + Prevent self-review) still requires a second human before secrets resolve. That's the floor; everything above is depth.
+Residual risk for a yolopush-to-main team: a compromised committer credential = direct push = workflow runs in main context. The Environment human gate is the floor.
 
 ### Cache scoping
 
-Cache keys must scope per-event so PR (no-secrets) jobs cannot poison caches consumed by `push: main` (with-secrets) jobs. Include `${{ github.event_name }}` in `actions/cache` keys.
+Cache keys include `${{ github.event_name }}` so PR (no-secrets) jobs cannot poison caches consumed by `push: main` (with-secrets) jobs.
 
 ## Agent Contexts
 
-How agents (Claude Code, Codex, etc.) get credentials when working in a worktree. The same `op` calls and the same `secrets` target work in all three contexts — agents do not branch on context.
+The same `op` calls and the same `secrets` target work in all three contexts.
 
 | Context | Credential source | Setup |
 |---|---|---|
-| **Local laptop** (agent on engineer's machine) | Inherits the shell env + the engineer's unlocked 1Password CLI session via desktop integration | 1P desktop integration on, biometric unlock enabled, auto-lock set to engineer preference (avoid "Never until I quit"), app unlocked at session start. No `OP_SERVICE_ACCOUNT_TOKEN` in personal shells |
-| **Shared devbox** (SSH or remote agent on a shared VM) | `OP_SERVICE_ACCOUNT_TOKEN` exported into the shared user's non-interactive shell. Practical path: store the token in `/etc/<org>/op.env` (mode `0600`, owned by the shared user) and source it from `/etc/profile.d/<org>-op.sh` or the user's `~/.zshenv` so SSH sessions inherit it. systemd `EnvironmentFile=` only reaches the unit that declares it; `/etc/environment` is world-readable | Operator pre-installs. Verify with `ssh user@host 'env | grep OP_SERVICE_ACCOUNT_TOKEN'` |
-| **Cloud agent** (Codex Cloud, Claude Code Cloud, etc.) | `OP_SERVICE_ACCOUNT_TOKEN` configured as a workspace secret in the agent platform | One-time setup per workspace; the VM inherits the token |
+| **Local laptop** | Unlocked 1Password CLI session via desktop integration | Desktop integration on, biometric unlock, finite auto-lock, app unlocked at session start |
+| **Shared devbox** | `OP_SERVICE_ACCOUNT_TOKEN` exported into the shared user's shell. Practical path: `/etc/<org>/op.env` (mode `0600`, sourced from `/etc/profile.d/<org>-op.sh` or `~/.zshenv`) | Operator pre-installs. Verify with `ssh user@host 'env \| grep OP_SERVICE_ACCOUNT_TOKEN'` |
+| **Cloud agent** (Codex Cloud, Claude Code Cloud) | `OP_SERVICE_ACCOUNT_TOKEN` configured as a workspace secret | One-time setup per workspace |
 
 ### Per-worktree onboarding
 
 ```bash
 git worktree add ../<repo>.<topic> <branch>
 cd ../<repo>.<topic>
-direnv allow                    # one-time per worktree
-<runner> secrets                # only when this worktree needs .env.local
+<runner> secrets                # when the task chain needs .env.local
 <runner> secrets-clean          # before `git worktree remove`
 ```
 
-Tracked `.envrc` and `.env.example` travel with the worktree. `.env.local` is materialised per-worktree, never shared.
+`.env.local` is materialised per-worktree; worktrees never share state.
 
 ### Harness ergonomics
 
-- Configure agent harnesses to auto-approve `direnv allow` on trusted repo paths so worktree onboarding doesn't need manual click-through
-- Have 1Password launch on login with biometric unlock so the CLI session is alive at session start
-- For unattended runs, use a devbox or Cloud agent context where the SA token is always present, not a personal laptop where the desktop session may auto-lock
+- 1Password launches on login with biometric unlock so the CLI session is alive at session start
+- Unattended runs (overnight, scheduled) use a devbox or Cloud agent so the SA token is always present
 
 ### Untrusted code
 
-The line is **"anything you did not author personally"**, not "anything from a fork." Compromised internal accounts and malicious dependencies are real attack vectors. Mitigations per context:
+The line is **"anything you did not author personally"**, not "anything from a fork." Compromised internal accounts and malicious dependencies are real vectors. Mitigations per context:
 
-- **Local laptop**: personal `op` session is unlocked; a malicious script could call `op read`. Mitigation = vault-scope discipline + per-item authentication on sensitive items + auto-lock to bound the window
-- **Devbox / Cloud**: SA token is in env; a malicious script could exfiltrate it. **Do not run untrusted code (including internal-PR code from someone you don't personally trust) on these contexts** — use a separate sandbox for review
+- **Local laptop**: vault-scope discipline + per-item auth on sensitive items + auto-lock window
+- **Devbox / Cloud**: SA token sits in env; malicious code can exfiltrate it. Run untrusted code (including internal-PR code from someone you don't personally trust) in a separate sandbox
