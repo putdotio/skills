@@ -7,7 +7,7 @@ description: Structure put.io frontend-owned repositories around repo-local veri
 
 Use one delivery rule: every merge to `main` should already be publishable or deployable.
 
-Bundled references: `delivery-model.md`, `typescript.md`, `applications.md`, and `env-setup.md`.
+Bundled references: `delivery-model.md`, `typescript.md`, `applications.md`, and `secrets.md`.
 This skill owns repo shape and canonical commands, not host-specific deployment architecture.
 
 ## Workflow
@@ -16,7 +16,7 @@ This skill owns repo shape and canonical commands, not host-specific deployment 
 2. Read [references/delivery-model.md](references/delivery-model.md).
 3. If the repo is TypeScript, read [references/typescript.md](references/typescript.md).
 4. If the repo is an application, read [references/applications.md](references/applications.md).
-5. If the repo uses 1Password-backed local, live-test, build, signing, or deploy workflows, read [references/env-setup.md](references/env-setup.md) and standardize the local env shape.
+5. If the repo uses 1Password-backed local, live-test, build, signing, or deploy workflows, read [references/secrets.md](references/secrets.md) and standardize the local env shape.
 6. Prefer one repo-local `verify` entrypoint that CI calls directly.
 7. Run the repo-local `verify` command locally before changing delivery automation. If it fails, fix that command first and rerun it until it passes.
 8. Configure semantic-release plugins and commit identity per the delivery-model reference when release commits are in scope.
