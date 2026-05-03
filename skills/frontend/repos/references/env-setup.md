@@ -19,7 +19,7 @@ If `.env.example` already exists with bare-key placeholders for non-1Password va
 
 ## Standard Shape
 
-A secrets-using repo carries four artefacts. The `secrets` target runs once per worktree to materialize `.env.local` from the operator's 1Password session — that is the only `op` invocation in the routine flow. Frameworks (Vite, Next.js) auto-read `.env.local`; shell-script flows that need secrets in-process wrap in `op run --env-file=.env.example -- <cmd>`.
+A secrets-using repo carries four artefacts. The `secrets-setup` target runs once per worktree to materialize `.env.local` from the operator's 1Password session — that is the only `op` invocation in the routine flow. Frameworks (Vite, Next.js) auto-read `.env.local`; shell-script flows that need secrets in-process wrap in `op run --env-file=.env.example -- <cmd>`.
 
 ### Tracked `.env.example` (literal `op://` references)
 
@@ -30,53 +30,40 @@ PUTIO_TEST_USER=op://<vault>/<item>/<field>
 
 Vault and item names go literally into the file. They are operational metadata, not secrets — the access control is the 1Password vault itself, not the names. The same template works for both `op inject` and `op run --env-file`.
 
-### `secrets` target in the repo's native task runner
+### `secrets-setup` / `secrets-clean` targets
 
-Body is identical across runners. `OP_ACCOUNT` is pinned **inside** the target so the recipe is hermetic across personal `op`, devbox SA token, and CI:
+Body is identical across runners. `OP_ACCOUNT` is pinned **inside** the target so the recipe is hermetic across personal `op`, devbox SA token, and CI. `op whoami` pre-flight fails fast if 1Password is locked; `op inject -f` overwrites without prompting; output is mode 0600. `secrets-clean` removes the materialised `.env.local` before `git worktree remove`.
 
-```bash
-OP_ACCOUNT=<account>.1password.com op whoami >/dev/null
-OP_ACCOUNT=<account>.1password.com op inject -f -i .env.example -o .env.local
-```
-
-`op whoami` pre-flight fails fast if 1Password is locked. `op inject -f` overwrites without prompting; output is mode 0600.
-
-Bindings:
+Naming convention follows the runner: hyphen for Make / just / shell, colon for npm-style. Behaviour is identical.
 
 ```makefile
 # Makefile
-.PHONY: secrets secrets-clean
-secrets:
+.PHONY: secrets-setup secrets-clean
+secrets-setup:
 	OP_ACCOUNT=<account>.1password.com op whoami >/dev/null
 	OP_ACCOUNT=<account>.1password.com op inject -f -i .env.example -o .env.local
 secrets-clean:
 	rm -f .env.local .env.local.* .env.local.swp
-	find . \( -name '.env.local' -o -name '.env.local.*' \) \
-	  -not -path './node_modules/*' -not -path './.git/*' -delete 2>/dev/null
 ```
 
 ```json
 // package.json
 { "scripts": {
-  "secrets": "OP_ACCOUNT=<account>.1password.com op whoami >/dev/null && OP_ACCOUNT=<account>.1password.com op inject -f -i .env.example -o .env.local",
-  "secrets-clean": "rm -f .env.local .env.local.* .env.local.swp && find . \\( -name '.env.local' -o -name '.env.local.*' \\) -not -path './node_modules/*' -not -path './.git/*' -delete 2>/dev/null || true"
+  "secrets:setup": "OP_ACCOUNT=<account>.1password.com op whoami >/dev/null && OP_ACCOUNT=<account>.1password.com op inject -f -i .env.example -o .env.local",
+  "secrets:clean": "rm -f .env.local .env.local.* .env.local.swp"
 } }
 ```
 
 ```just
 # justfile
-secrets:
+secrets-setup:
     OP_ACCOUNT=<account>.1password.com op whoami >/dev/null
     OP_ACCOUNT=<account>.1password.com op inject -f -i .env.example -o .env.local
 secrets-clean:
     rm -f .env.local .env.local.* .env.local.swp
-    find . \( -name '.env.local' -o -name '.env.local.*' \) \
-      -not -path './node_modules/*' -not -path './.git/*' -delete 2>/dev/null
 ```
 
-### `secrets-clean` target
-
-Run before `git worktree remove`. Scrubs root + editor history + swap files. For system-level backup paths (Time Machine, iCloud/Dropbox), exclude worktree roots once at the system level.
+In a monorepo with per-app/package `.env.example` files, declare the target on each package (e.g. `apps/<app>/package.json`'s `secrets:setup`) so an agent can run `pnpm --filter @org/<app> secrets:setup` and materialise that one app's `.env.local`.
 
 ### `.gitignore`
 
@@ -90,10 +77,10 @@ The `!.env.example` exception is **required** — without it, the blanket `.env.
 
 ## Targets That Need Secrets
 
-Default verify (`build`, `test`, `lint`, `typecheck`) runs without secrets. Targets that need them declare `secrets` as a task dependency:
+Default verify (`build`, `test`, `lint`, `typecheck`) runs without secrets. Targets that need them declare `secrets-setup` as a task dependency:
 
 ```makefile
-live-test: secrets
+live-test: secrets-setup
 	pnpm test:live
 ```
 
@@ -103,7 +90,7 @@ For no-disk-persist flows (CI live-test, heightened-security one-shots), wrap in
 op run --env-file=.env.example -- pnpm test:live
 ```
 
-Keep `secrets` out of `prepare`, `postinstall`, and `prebuild` hooks — those run on `pnpm install` and would route every contributor through the 1Password bootstrap.
+Keep `secrets-setup` out of `prepare`, `postinstall`, and `prebuild` hooks — those run on `pnpm install` and would route every contributor through the 1Password bootstrap.
 
 ## Verify
 
@@ -113,7 +100,7 @@ git check-ignore -v .env.example && echo "WRONG: .env.example must be tracked" |
 
 op whoami --account=<account>.1password.com >/dev/null
 
-<repo's secrets target>
+<repo's secrets-setup target>
 test -f .env.local
 mode=$(stat -f '%Mp%Lp' .env.local 2>/dev/null || stat -c '%a' .env.local)
 test "$mode" = "600" && echo mode ok || echo "WRONG: mode=$mode"
@@ -126,7 +113,7 @@ test ! -f .env.local && echo cleanup ok
 ## Public Repo Notes
 
 - Build, test, lint, typecheck must pass without `.env.local`. If any depend on secrets, move the secret-dependent flow to a separate target (`live-test`, `deploy`, `release`) that documents its requirement
-- `secrets` is a committer-only target in public repos; routine contributors ignore it
+- `secrets-setup` is a committer-only target in public repos; routine contributors ignore it
 - If an item title would reveal something better kept internal, rename it in 1Password rather than obscuring the `op://` reference
 
 ## CI/CD
@@ -162,7 +149,7 @@ Load-bearing:
 Additional hygiene (adopt where team size supports a real PR review process):
 
 - Branch protection on `main`: required PR review, no force-push, no admin bypass
-- CODEOWNERS on `.github/workflows/**`, `.github/actions/**`, `.env.example`, the `secrets`/`secrets-clean` target body, and lockfiles
+- CODEOWNERS on `.github/workflows/**`, `.github/actions/**`, `.env.example`, the `secrets-setup`/`secrets-clean` target body, and lockfiles
 - Signed commits
 
 Residual risk for a yolopush-to-main team: a compromised committer credential = direct push = workflow runs in main context. The Environment human gate is the floor.
@@ -173,7 +160,7 @@ Cache keys include `${{ github.event_name }}` so PR (no-secrets) jobs cannot poi
 
 ## Agent Contexts
 
-The same `op` calls and the same `secrets` target work in all three contexts.
+The same `op` calls and the same `secrets-setup` target work in all three contexts.
 
 | Context | Credential source | Setup |
 |---|---|---|
@@ -186,8 +173,8 @@ The same `op` calls and the same `secrets` target work in all three contexts.
 ```bash
 git worktree add ../<repo>.<topic> <branch>
 cd ../<repo>.<topic>
-<runner> secrets                # when the task chain needs .env.local
-<runner> secrets-clean          # before `git worktree remove`
+<runner> secrets-setup          # when the task chain needs .env.local (or `<runner> secrets:setup` for npm-style)
+<runner> secrets-clean          # before `git worktree remove` (or `<runner> secrets:clean`)
 ```
 
 `.env.local` is materialised per-worktree; worktrees never share state.
